@@ -1,0 +1,52 @@
+\documentclass[12pt,twoside]{book}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+% Biber
+\usepackage[backend=biber,      % replace bibtex with biber
+style=ieee,
+bibstyle=ieee,              % write literature lists in IEEE style
+mincitenames=2,
+maxcitenames=2,
+minbibnames=8,
+maxbibnames=20,
+sortcites=true,   
+giveninits=true,            % use caps    
+backref=false
+]{biblatex}
+\addbibresource{references.bib}
+
+\graphicspath{ {images/} }
+\pagestyle{fancy}
+%\fancyhead[RO,LE]{Chapter \thechapter. \chaptername}
+\lhead{\nouppercase{\rightmark}}
+\rhead{\nouppercase{\leftmark}}
+
+\title{
+	{Combining safe learning and learning safety}\\
+	{\large Mines ParisTech}\\
+	{\includegraphics{mines_logo.png}}
+}
+\author{Pierre-François Massiani}
+\date{September 9{th}, 2020}
+
+\begin{document}
+	\frontmatter
+	\input{titlepage}
+	
+	\input{chapters/abstract_eng}
+	\input{chapters/abstract_fr}
+	
+	\tableofcontents
+	\mainmatter
+	\input{chapters/introduction}
+	\input{chapters/preliminaries}
+	\input{chapters/viability_based_safety}
+	\input{chapters/safely_learning_values}
+	\input{chapters/future_work}
+	\input{chapters/conclusion}
+	
+	
+\end{document}
