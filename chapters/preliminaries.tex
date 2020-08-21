@@ -1,1 +1,18 @@
-\chapter{Preliminaries}
+\chapter{Preliminaries} \label{chap:prelim}
+
+	In this chapter, we introduce the concepts that this work builds upon. The goal here is to expose the reader to the tools necessary to understand the ideas we will develop in later chapters. We start by presenting in Section~\ref{sec:preliminary RL} the well-established RL formalism and its connection with MDPs. We also discuss the main differences between MDPs and CMDPs, as they will happen to be of utter importance to understand the limitations of the penalized methods of Chapter~\ref{chap:safety from viability}. We then introduce viability theory in Section~\ref{sec:preliminary viability}, which is a very general framework typically used to describe dynamical systems that manage to avoid failure without converging to an equilibrium. This powerful conceptual tool will enable us to formalize our definition of safety in Chapter~\ref{chap:safety from viability}, and will be central for the algorithms derived in Chapter~\ref{chap:benchmark}.
+	
+	\section{Reinforcement learning} \label{sec:preliminary RL}
+		Herein, we give a brief introduction to RL. For a complete and thorough overview of that field, we refer the reader to the famous book~\cite{sutton2018reinforcement} by Sutton and Barto. The definitions and concepts presented here can be found in~\cite[Chapter\,3]{sutton2018reinforcement}.\par
+		The general purpose of RL is learning what to do, that is, to map situations to actions. The learner - also called the\emph{ agent} - is placed in an\emph{ environment}, and its goal is to maximize a\emph{ long-term reward}. The catch is that the agent is not told which actions are good: it has to discover this through\emph{ trial and error}. Here, we have all the ingredients necessary to define RL: an agent evolving in an environment and whose goal is to maximize a long-term reward through trial-and-error. 
+		
+		\subsection{Markov decision processes}
+			The goal of RL is generally formalized through the mathematical model of MDPs. MDPs are the simplest way to describe learning from interactions with an environment, and we introduce them here.
+			\paragraph{States, actions, and rewards}The agent interacts with the environment in a sequence of discrete time steps $t = 0, 1, 2, 3, \hdots$. At each time step $t$, the agent is in a given state $S_t \in \S$ and can pick an action $A_t \in \A$ to transition to a next state, $S_{t+1}$. While this transition occurs, the agent also collects a numerical \emph{reward} $R_{t+1}$\footnote{In this work, we follow the convention adopted in~\cite{sutton2018reinforcement} and use $R_{t+1}$ instead of $R_t$ at time $t$ to emphasize the fact that the reward is determined\emph{ after} the action $A_t$ is chosen, jointly with $S_{t+1}$.}. Hence, a notion of\emph{ trajectory} naturally emerges from an agent evolving in a MDP:
+			\begin{equation*}
+				S_0, A_0, R_1, S_1, A_1, R_2, S_2, A_2, R_3, \hdots
+			\end{equation*}
+			\paragraph{Environment and Markov property} In this work, we will restrict ourselves to\emph{ finite} MDPs, that is where \S~and \A~are finite sets. Hence, the random variables describing the successive states, actions and rewards follow well-defined discrete probability distributions. In MDPs, these variables are assumed to satisfy a very strong relation, enabling MDPs to be considered as a special case of dynamical systems. % State the Markov property
+			% What defines the environment is the way the next state $S_{t+1}$ is chosen from the previous state $S_t$ and the action $A_t$. We will only consider here the simplest case\footnote{For instance, other models could be assuming a stochastic transition map, or an adversarial one.} where the environment follows a deterministic\emph{ transition map} $T$, which means that $s' = T(s, a)$
+	
+	\section{Viability theory} \label{sec:preliminary viability}

@@ -2,27 +2,35 @@
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
+% Biber
+%\usepackage[backend=biber,      % replace bibtex with biber
+%style=ieee,
+%bibstyle=ieee,              % write literature lists in IEEE style
+%mincitenames=2,
+%maxcitenames=2,
+%minbibnames=8,
+%maxbibnames=20,
+%sortcites=true,   
+%giveninits=true,            % use caps    
+%backref=false
+%]{biblatex}[backend=biber]
+\usepackage[backend=biber]{biblatex}
+\addbibresource{references.bib}
+
 \usepackage{fancyhdr}
 \usepackage{graphicx}
-% Biber
-\usepackage[backend=biber,      % replace bibtex with biber
-style=ieee,
-bibstyle=ieee,              % write literature lists in IEEE style
-mincitenames=2,
-maxcitenames=2,
-minbibnames=8,
-maxbibnames=20,
-sortcites=true,   
-giveninits=true,            % use caps    
-backref=false
-]{biblatex}
-\addbibresource{references.bib}
+\usepackage{csquotes}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
 
 \graphicspath{ {images/} }
 \pagestyle{fancy}
 %\fancyhead[RO,LE]{Chapter \thechapter. \chaptername}
 \lhead{\nouppercase{\rightmark}}
 \rhead{\nouppercase{\leftmark}}
+
+\input{custom_commands}
 
 \title{
 	{Combining safe learning and learning safety}\\
@@ -47,6 +55,8 @@ backref=false
 	\input{chapters/safely_learning_values}
 	\input{chapters/future_work}
 	\input{chapters/conclusion}
+	
+	\printbibliography
 	
 	
 \end{document}
