@@ -8,11 +8,131 @@
 		
 		\subsection{Markov decision processes}
 			The goal of RL is generally formalized through the mathematical model of MDPs. MDPs are the simplest way to describe learning from interactions with an environment, and we introduce them here.
-			\paragraph{States, actions, and rewards}The agent interacts with the environment in a sequence of discrete time steps $t = 0, 1, 2, 3, \hdots$. At each time step $t$, the agent is in a given state $S_t \in \S$ and can pick an action $A_t \in \A$ to transition to a next state, $S_{t+1}$. While this transition occurs, the agent also collects a numerical \emph{reward} $R_{t+1}$\footnote{In this work, we follow the convention adopted in~\cite{sutton2018reinforcement} and use $R_{t+1}$ instead of $R_t$ at time $t$ to emphasize the fact that the reward is determined\emph{ after} the action $A_t$ is chosen, jointly with $S_{t+1}$.}. Hence, a notion of\emph{ trajectory} naturally emerges from an agent evolving in a MDP:
+			\subsubsection{States, actions, and rewards} 
+				The agent interacts with the environment in a sequence of discrete time steps $t = 0, 1, 2, 3, \hdots$. At each time step $t$, the agent is in a given state $S_t \in \S$ and can pick an action $A_t \in \A$ to transition to a next state, $S_{t+1}$. While this transition occurs, the agent also collects a numerical \emph{reward} $R_{t+1}$\footnote{In this work, we follow the convention adopted in~\cite{sutton2018reinforcement} and use $R_{t+1}$ instead of $R_t$ at time $t$ to emphasize the fact that the reward is determined\emph{ after} the action $A_t$ is chosen, jointly with $S_{t+1}$.}. Hence, a notion of\emph{ trajectory} naturally emerges from an agent evolving in a MDP:
+				\begin{equation*}
+					T = (S_0, A_0, R_1, S_1, A_1, R_2, S_2, A_2, R_3, \hdots).
+				\end{equation*}
+				The set of all possible trajectories is noted $\T = (\S\times\A\times\R)^\Tf$, where \Tf~is the stopping time of the process and is defined below. What's more, $\Q = \S\times\A$ is called the\emph{ state-action set}.
+			\subsubsection{Environment and Markov property} 
+				In this work, we will restrict ourselves to\emph{ finite} MDPs, that is where \S~and \A~are finite sets. Hence, the random variables describing the successive states, actions and rewards follow well-defined discrete probability distributions. An important question is whether knowing about the\emph{ history} of the agent - that is, its trajectory up to the current time $t$ - gives any information about its future. In MDPs, the following assumption is assumed to hold:
+				\begin{assumption}
+					States and rewards satisfy the\emph{ Markov property}, that is, for all trajectory $\tau_{\leq t} = (s_0, a_0, \hdots, s_t, a_t)$ up to time $t$, and all $s'\in\S$~and $r\in\R$:
+					\begin{align}
+						\P(S_{t+1} = s'~|~(S_0, A_0, \hdots, S_t, A_t) = \tau_{\leq t}) & = \P(S_{t+1} = s'~|~S_t=s_t, A_t=a_t) \label{eq:markov assumption state}\\
+						\P(R_{t+1} = r~|~(S_0, A_0, \hdots, S_t, A_t) = \tau_{\leq t}) & = \P(R_{t+1} = r~|~S_t=s_t, A_t=a_t) \label{eq:markov assumption reward}
+					\end{align}
+				\end{assumption}
+				This fundamental assumption of MDPs states that the\emph{ transition probabilities} to the next state only depend on the current state and the chosen action, and not on the rest of the history of the agent. If the environment is\emph{ stationary} - which we will assume from now on - the dynamics does not depend on time. The function giving the probabilities of the next state $s'$ and the collected reward $r$ given the current state $s$ and action $a$ is called the\emph{ dynamics} of the environment:
+				\begin{equation}
+					f(s', r | s, a) = \P(S_{t+1} = s', R_{t+1} = r~|~S_t=s, A_t=a). \label{eq:dynamics}
+				\end{equation}\par
+				The Markov assumption should be understood as a condition on the state rather than on the environment. The state must indeed include all information that make a difference on the future of the agent. Finding a correct state that ensures that the Markov assumption is satisfied is thus a critical modeling step.
+			\subsubsection{Return function}
+				When interacting with its environment, the agent's goal is to maximize a \enquote{long term reward}, also called the\emph{ return}. Surely, this return should be related to the immediate reward: if the agent has collected the rewards $R_t, R_{t+1}, \hdots$ after the time step $t$, what is the associated return? To answer this question, we must define an aggregation function that will be the agent's definition of the return.
+				\paragraph{Episodic tasks} There are several reasonable definitions for the return. The first that comes to mind is the\emph{ total return}, which is simply the sum of all collected rewards:
+				\begin{equation}
+					G_t = R_{t+1} + R_{t+2}  + \cdots + R_\Tf = \sum_{u=t+1}^\Tf R_u, \label{eq:total return}
+				\end{equation}
+				where $\Tf$ is the final time step\footnote{In general, \Tf~is also a random variable since the stopping time is not known in advance. In this work, we will not consider such a technicality and will assume \Tf~to be constant, although our results can extend to the case where \Tf is random.}. This definition is particularly suited when there is such a notion of final time step. In that case, the interactions between the agent and the environment naturally break into subsequences called\emph{ episodes}, and the MDP is called episodic. Such a setting describes, for example, an agent whose goal is to find a flag in an environment or an agent playing a video game or a game of sports. The episode is over when the agent reaches a\emph{ terminal state}: the flag is found, the agent dies or succeeds in the quest, or the time is over. After an episode ends, the agent is reset in the environment and a new one can start, independently of the outcome of the previous one.
+				\paragraph{Continuing tasks} When the agent-environment interaction does not break into such episodes, the total return is in general not well-suited since it can easily take infinite values. In that case, the task is said to be\emph{ continuing}. A simple way-out of these infinite returns is to consider the\emph{ discounted return}\footnote{There are other ways of defining finite returns for continuing tasks (such as the average return), but we will not consider them here.}, where the agent discounts the rewards in the future and maximizes the sum of these discounted rewards:
+				\begin{equation}
+					G_t = \sum_{u=0}^\infty \gamma^u R_{t + u + 1}, \label{eq:discounted return}
+				\end{equation}
+				where $0 \leq \gamma \leq 1$ is the\emph{ discount rate}, or\emph{ discount factor}. The value of the discount factor defines how much the agent values long-term rewards compared to immediate ones. If $\gamma = 0$, the agent is myopic and will only care about its next immediate reward. Such an agent has no ability for long-term planning. Contrarily, as $\gamma$~gets close to 1, future rewards are more and more taken into account. The discounted reward model is also popular in other fields such as economy, where it is commonly used to describe interest rates. The fact that it naturally gives less importance to long-term reward can either be seen as a feature - since long-term rewards are generally subject to more uncertainty - or as a shortcoming, as the evaluation it gives of situations often leads to short-termism. Whether the discounted reward is adapted to describing the task at hand is another modeling question\footnote{In Chapter~\ref{chap:safety from viability}, we will define another discounted quantity: the\emph{ discounted risk}. As we will discuss it in Section~\ref{sec:future nonzero}, this discounted risk is perhaps ill-suited for extension of our results, because it would not describe what we intuitively call a risk.}. Alternatives to this definition exist, but discussing them is beyond the scope of this work.
+				\paragraph{Unified notation} The theories behind episodic and continuing tasks are very closely related. As a matter of fact, all the results in this work can be applied to both settings without any further considerations. Hence, we define a common notation in order to treat both settings in the same way. The total return of Equation~\eqref{eq:total return} can also be written as:
+			\begin{equation}
+				G_t = \sum_{u=0}^\Tf \gamma^u R_{t + u + 1}, \label{eq:unified return}
+			\end{equation}
+			with $\gamma = 1$. Similarly, the discounted return of~\eqref{eq:discounted return} can be written as in Equation~\eqref{eq:unified return} with $\gamma < 1$ and $\Tf = \infty$. Hence, we will take Equation~\eqref{eq:unified return} as the general definition of the return, and allow $\Tf = \infty$ whenever $\gamma < 1$.
+		\subsubsection{Initial state} 
+			Be it in an episodic or in a continuing task, the agent will be\emph{ initialized} at some point. The law of the variable $S_0$ describing the initial state of the agent is a free parameter\footnote{In practice, this parameter is not free but is determined by the true system that we model. For example, the initial state is generally fully determined in a video game.} in MDPs. We will denote $\mu$ the law of $S_0$:
 			\begin{equation*}
-				S_0, A_0, R_1, S_1, A_1, R_2, S_2, A_2, R_3, \hdots
+				\forall s\in\S,~\P(S_0 = s) = \mu(s).
 			\end{equation*}
-			\paragraph{Environment and Markov property} In this work, we will restrict ourselves to\emph{ finite} MDPs, that is where \S~and \A~are finite sets. Hence, the random variables describing the successive states, actions and rewards follow well-defined discrete probability distributions. In MDPs, these variables are assumed to satisfy a very strong relation, enabling MDPs to be considered as a special case of dynamical systems. % State the Markov property
-			% What defines the environment is the way the next state $S_{t+1}$ is chosen from the previous state $S_t$ and the action $A_t$. We will only consider here the simplest case\footnote{For instance, other models could be assuming a stochastic transition map, or an adversarial one.} where the environment follows a deterministic\emph{ transition map} $T$, which means that $s' = T(s, a)$
-	
+			So far, we do not put any assumption on $\mu$. Such assumptions will come in Chapter~\ref{chap:safety from viability}, where we will see that it is hopeless to ensure safety if $\mu$ can be anything.
+		\subsubsection{Policies and optimization objective} 
+			At each time step $t$, the agent needs to choose an action to do. The decision rule that the agent follows is called a\emph{ policy}: when in state $s$, the agent will take the action $a$ with probability $\pi(a|s)$. Policies are allowed to be stochastic, that is, $\pi(a|s) \in [0, 1]$. For a given state, a policy determines a probability distribution over the set of actions, and so the following identity holds:
+			\begin{equation*}
+			\sum_{a\in\A}\pi(a|s) = 1.
+			\end{equation*} 
+			Formally, a policy is just an ordinary function $\pi:\,\Q\to[0,1]$, and the space of policies is denoted $\Pi$.\par
+			The attentive reader may notice that our definition of policies is quite restrictive. Indeed, nothing suggests in what we have already established that the decision rule of the agent cannot depend on time, or can only use the information of the\emph{ current} state to decide what action to take (compared to using all the available history). Such policies are called\emph{ stationary Markov policies}, and~\cite[Theorem\,2.1]{altman1999constrained} states that the optimization problem defined below can be restricted to such policies without loss of generality. In the following, we will only consider stationary Markov policies and refer to them simply as \enquote{policies}.\par
+			The choice of a policy, combined with the dynamics and the distribution $\mu$ of the initial state, induces a probability distribution over the set of trajectories. Because of the stochasticity of both the dynamics and the policy, the return itself is a random variable defined on that set of trajectories. Hence, the agent's goal is to maximize the expected value of the return:
+			\begin{equation}
+					\underset{\pi\in\Pi}{\text{maximize}}\quad\expected_\pi\left(G_t\right). \label{eq:mdp problem}
+			\end{equation}
+			This is the fundamental optimization objective of MDPs that RL algorithms aim at solving. The main difference with a classical optimization problem is that, in RL, the objective function cannot be easily evaluated.
+		\subsubsection{Value functions and Bellman equations} 
+			The most powerful tool for solving Problem~\eqref{eq:mdp problem} is\emph{ value functions}. The key idea here is to define what the\emph{ value of a state} (or a state-action) is under a given policy:
+			\begin{definition}
+				Let $\pi\in\Pi$. The state and state-action value functions of $\pi$ are:
+				\begin{alignat}{7}
+				& V_\pi\,&:&\, &s&\in\S & & \mapsto \expected_\pi\left[G_t~\middle|~S_t = s\right]. \label{eq:state value} \\
+				& Q_\pi\,&:&\, (&s&, a)\in\Q & & \mapsto \expected_\pi\left[G_t~\middle|~S_t = s, A_t = a\right]. \label{eq:stateaction value}
+				\end{alignat}
+			\end{definition}
+			According to the stationarity assumption, these functions do not depend on the time. The state (resp. sate-action) value function represents the expected return that the agent will get by following the policy $\pi$ when in state $s$ (resp. when in state $s$ and after taking action $a$). The state value function satisfies a recursive identity called the\emph{ Bellman equation}\footnote{The state-action value function also satisfies a Bellman equation.}~\cite[Section\,3.5]{sutton2018reinforcement}:
+			\begin{equation}
+				V_\pi(s) = \sum_{a} \pi(a|s) \sum_{s', r}f(s', r |s, a)\left[r + \gamma V_\pi(s')\right],\quad \forall s\in\S.
+			\end{equation}
+			The Bellman equation expresses a relation between the value of a state and the value of its successor states. We can think of what it means as a one-step-ahead lookup on the return the agent can collect. In a state $s$, the agent can take an action $a$ and reach a state $s'$ with reward $r$. The additional return that can be collected from $s'$ is $V_\pi(s')$: it aggregates all the possible rewards the agent will get when starting again from $s'$. The Bellman equation discounts this future return that the agent will only enjoy from the next step, and averages all these possible outcomes with their probability of happening: this defines the value of the current state $s$.
+			\paragraph{Optimal value functions} The power of using value functions becomes clear when defining the\emph{ optimal value function}:
+			\begin{definition}
+				The optimal value functions of the MDP are:
+				\begin{alignat}{6}
+					V^*\,&:&\,&s&\in\S&\mapsto& & \max_{\pi\in\Pi}~V_\pi(s) \label{eq:optimal state value}\\
+					Q^*\,&:&\,(&s&, a)\in\Q&\mapsto& & \max_{\pi\in\Pi}~Q_\pi(s, a) \label{eq:optimal state action value}
+				\end{alignat}
+			\end{definition}
+			Now - and this is the wonderful result - the functions $V^*$~and $Q^*$ are the value functions associated to a policy, $\pi^*$. Namely, $\pi^*$ is the policy that always picks the action with the best value\footnote{We assume here that there is only one, but if this is not the case, any such action works.} for $Q^*$:
+			\begin{equation}
+				\pi^*(a|s) = \begin{cases}
+				1,&\text{ if } a = \argmax_{a'}\,Q^*(s, a'),\\
+				0,&\text{ otherwise}.
+				\end{cases} \label{eq:optimal policy}
+			\end{equation} The fact that this policy has $V^*$ and $Q^*$ as value functions is proven in~\cite[Chapter\,4]{sutton2018reinforcement}. And it is now straightforward to see that $\pi^*$ is an optimal policy for the optimization problem of MDPs~\eqref{eq:mdp problem}:
+			\begin{equation*}
+				\expected_{\pi^*}\left(G_t\right) \leq \max_\pi~\expected_\pi\left(G_t\right) = \sum_s \mu(s) V_\pi(s) \leq \sum_s \mu(s) V_{\pi^*}(s) = \expected_{\pi^*}\left(G_t\right).
+			\end{equation*}
+			So, the complicated optimization problem~\eqref{eq:mdp problem} can be solved by approximating the state-action value function $Q^*$, since an optimal policy can simply be derived from it. Most of the famous algorithms for RL like dynamic programming\needcite, Q-Learning~\cite{watkins1992q}, TD methods\needcite, or SARSA\needcite, are actually methods that try to estimate this $Q^*$ function.
+		\subsection{Constrained Markov decision processes}
+		While Markov decision processes are commonly used for RL tasks, they are not always the best-suited model. We have seen in the introduction that CMDPs are particularly adapted to describe RL tasks with safety concerns. We provide here a brief introduction to CMDPs. The main piece of literature in that field is~\cite{altman1999constrained}, and this section is mainly based on \cite[Chapter\,3]{altman1999constrained}.
+		\subsubsection{A constrained optimization problem}
+		The mathematical formalism of CMDPs is almost identical to the one of MDPs. In this work, we only consider MDPs constrained by a single scalar cost:
+		\begin{definition}
+			A \emph{constrained Markov decision process} is a tuple $(\S, \A, f, \mu, c, \gammabar, d)$ where:
+			\begin{itemize}
+				\item \S~is the set of states,
+				\item \A~is the set of actions,
+				\item $f$~is the dynamics\footnote{Bear in mind that our definition of the dynamics include the definition of the reward.}, which is assumed to satisfy the Markov property and to be stationary,
+				\item $\mu$~is the probability distribution of the initial state,
+				\item $c: \Q\to \R$, is a function describing an immediate cost that is sampled by the agent at every time step the same time as the reward and is allowed to be stochastic,
+				\item $\gammabar$ is the discount factor of the aggregated cost,
+				\item $d \in \R$ is the maximal acceptable aggregated cost.
+			\end{itemize}
+		\end{definition}
+		We say that an agent is solving the CMDP when it is solving the following optimization problem:
+		\begin{equation}
+		\begin{aligned}
+			\underset{\pi}{\text{maximize}} & \quad\expected_\pi\left[G_t\right], \\
+			\text{s. t.} & \quad\expected_\pi\left[\sum_{t=0}^\Tf\gammabar^tc(S_t, A_t)\right] \leq d.
+		\end{aligned} \label{eq:cmdp problem}
+		\end{equation}
+		Note that Problem~\eqref{eq:cmdp problem} is very similar to Problem~\eqref{eq:mdp problem}: the only difference is the set of policies that is optimized upon. 
+		
+		\begin{example}
+			Chance constraints are a special case of cost-constrained CMDPs. For example, assume we are given a safe set~$\S_\text{safe}\subset\S$, and a maximal acceptable risk $\delta$. Also assume that states outside of $\S_\text{safe}$ are terminal. We want to constrain the policies to the one that stay in $\S_\text{safe}$ with probability at least $1 - \delta$:
+			\begin{equation*}
+				\P_\pi\left[\bigcap_{t=0}^\Tf\{S_t\in\S_\text{safe}\}\right] \geq 1 - \delta.
+			\end{equation*}
+			By taking $\gammabar = 1$ and $c(s, a) = \indicator_{\S\setminus\S_\text{safe}}(s)$, we have:
+			\begin{equation*}
+			\expected_\pi\left[\sum_{t=0}^\Tf\gammabar^tc(S_t, A_t)\right] = 1 - \P_\pi\left[\bigcap_{t=0}^\Tf\{S_t\in\S_\text{safe}\}\right].
+			\end{equation*}
+			Hence, choosing $d = \delta$ gives the desired constraint.
+		\end{example} 
+		\subsubsection{Optimal policies}
+		The main difference between classical MDPs and CMDPs is their set of optimal policies.
+		
 	\section{Viability theory} \label{sec:preliminary viability}
