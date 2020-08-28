@@ -2,7 +2,9 @@
 
 
 \section{Allowing a nonzero risk of failing} \label{sec:future nonzero}
-
+\paragraph{A simple constraint in state-action space} The set of policies satisfying the safety constraints of equation~\eqref{eq:safety def} can be easily described: it is the set of functions that are $0$ on a region of the state-action space, thus forbidding the risky transitions that leave the viability kernel. Such a description is uncommon: the results in~\cite{altman1999constrained} provide simple conditions to check whether a policy is safe, but their generality does not allow such a precise description. Defining safety as having a $0$ probability of failure enabled us to characterize safety as giving a $0$ probability to specific transitions: we hope that this description can generalize to non-zero risks by allowing some probability of leaving the viability kernel, and thus enable a finer understanding of the effect of chance constraints on the policies.\TODO{Move this to Outline chapter}
+% 0 risk setting is helpful, but generalizing would be interesting for safe learning algorithms
+% policies are randomized
 \section{Parameterization and strong duality}
 
 \section{Scaling the algorithm}

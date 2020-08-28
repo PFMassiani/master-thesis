@@ -6,10 +6,10 @@
 		Herein, we give a brief introduction to RL. For a complete and thorough overview of that field, we refer the reader to the famous book~\cite{sutton2018reinforcement} by Sutton and Barto. The definitions and concepts presented here can be found in~\cite[Chapter\,3]{sutton2018reinforcement}.\par
 		The general purpose of RL is learning what to do, that is, to map situations to actions. The learner - also called the\emph{ agent} - is placed in an\emph{ environment}, and its goal is to maximize a\emph{ long-term reward}. The catch is that the agent is not told which actions are good: it has to discover this through\emph{ trial and error}. Here, we have all the ingredients necessary to define RL: an agent evolving in an environment and whose goal is to maximize a long-term reward through trial-and-error. 
 		
-		\subsection{Markov decision processes}
+		\subsection{Markov decision processes} \label{sec:preliminary mdps}
 			The goal of RL is generally formalized through the mathematical model of MDPs. MDPs are the simplest way to describe learning from interactions with an environment, and we introduce them here.
 			\subsubsection{States, actions, and rewards} 
-				The agent interacts with the environment in a sequence of discrete time steps $t = 0, 1, 2, 3, \hdots$. At each time step $t$, the agent is in a given state $S_t \in \S$ and can pick an action $A_t \in \A$ to transition to a next state, $S_{t+1}$. While this transition occurs, the agent also collects a numerical \emph{reward} $R_{t+1}$\footnote{In this work, we follow the convention adopted in~\cite{sutton2018reinforcement} and use $R_{t+1}$ instead of $R_t$ at time $t$ to emphasize the fact that the reward is determined\emph{ after} the action $A_t$ is chosen, jointly with $S_{t+1}$.}. Hence, a notion of\emph{ trajectory} naturally emerges from an agent evolving in a MDP:
+				The agent interacts with the environment in a sequence of discrete time steps $t = 0, 1, 2, 3, \hdots$. At each time step $t$, the agent is in a given state $S_t \in \S$ and can pick an action $A_t \in \A$ to transition to a next state, $S_{t+1}$. While this transition occurs, the agent also collects a numerical \emph{reward} $R_{t+1}$\footnote{In this work, we follow the convention adopted in~\cite{sutton2018reinforcement} and use $R_{t+1}$ instead of $R_t$ at time $t$ to emphasize the fact that the reward is determined\emph{ after} the action $A_t$ is chosen, jointly with $S_{t+1}$.}. Hence, a notion of\emph{ trajectory} naturally emerges from an agent evolving in an MDP:
 				\begin{equation*}
 					T = (S_0, A_0, R_1, S_1, A_1, R_2, S_2, A_2, R_3, \hdots).
 				\end{equation*}
@@ -23,10 +23,11 @@
 						\P(R_{t+1} = r~|~(S_0, A_0, \hdots, S_t, A_t) = \tau_{\leq t}) & = \P(R_{t+1} = r~|~S_t=s_t, A_t=a_t) \label{eq:markov assumption reward}
 					\end{align}
 				\end{assumption}
-				This fundamental assumption of MDPs states that the\emph{ transition probabilities} to the next state only depend on the current state and the chosen action, and not on the rest of the history of the agent. If the environment is\emph{ stationary} - which we will assume from now on - the dynamics does not depend on time. The function giving the probabilities of the next state $s'$ and the collected reward $r$ given the current state $s$ and action $a$ is called the\emph{ dynamics} of the environment:
+				This fundamental assumption of MDPs states that the\emph{ transition probabilities} to the next state only depend on the current state and the chosen action, and not on the rest of the history of the agent. The function giving the probabilities of the next state $s'$ and the collected reward $r$ given the current state $s$ and action $a$ is called the\emph{ dynamics} of the environment:
 				\begin{equation}
 					f(s', r | s, a) = \P(S_{t+1} = s', R_{t+1} = r~|~S_t=s, A_t=a). \label{eq:dynamics}
-				\end{equation}\par
+				\end{equation}
+				If the environment is\emph{ stationary} - which we will assume from now on - the dynamics does not depend on time.\par
 				The Markov assumption should be understood as a condition on the state rather than on the environment. The state must indeed include all information that make a difference on the future of the agent. Finding a correct state that ensures that the Markov assumption is satisfied is thus a critical modeling step.
 			\subsubsection{Return function}
 				When interacting with its environment, the agent's goal is to maximize a \enquote{long term reward}, also called the\emph{ return}. Surely, this return should be related to the immediate reward: if the agent has collected the rewards $R_t, R_{t+1}, \hdots$ after the time step $t$, what is the associated return? To answer this question, we must define an aggregation function that will be the agent's definition of the return.
@@ -46,9 +47,13 @@
 			\end{equation}
 			with $\gamma = 1$. Similarly, the discounted return of~\eqref{eq:discounted return} can be written as in Equation~\eqref{eq:unified return} with $\gamma < 1$ and $\Tf = \infty$. Hence, we will take Equation~\eqref{eq:unified return} as the general definition of the return, and allow $\Tf = \infty$ whenever $\gamma < 1$.
 		\subsubsection{Initial state} 
-			Be it in an episodic or in a continuing task, the agent will be\emph{ initialized} at some point. The law of the variable $S_0$ describing the initial state of the agent is a free parameter\footnote{In practice, this parameter is not free but is determined by the true system that we model. For example, the initial state is generally fully determined in a video game.} in MDPs. We will denote $\mu$ the law of $S_0$:
+			The agent needs to be\emph{ initialized} at the beginning of the experiment (or at the beginning of each episode for episodic tasks). The law of the variable $S_0$ describing the initial state of the agent is a free parameter\footnote{In practice, this parameter is not free but is determined by the true system that we model. For example, the initial state is generally fully determined in a video game.} in MDPs. We call $\mu$ the probability distribution of the initial state:
 			\begin{equation*}
 				\forall s\in\S,~\P(S_0 = s) = \mu(s).
+			\end{equation*}
+			The support of $\mu$ is the set of states in which the agent can be initialized with a non-zero probability, and is noted:
+			\begin{equation*}
+				\support(\mu) = \{s\in\S~|~\mu(s) > 0\}.
 			\end{equation*}
 			So far, we do not put any assumption on $\mu$. Such assumptions will come in Chapter~\ref{chap:safety from viability}, where we will see that it is hopeless to ensure safety if $\mu$ can be anything.
 		\subsubsection{Policies and optimization objective} 
@@ -74,7 +79,7 @@
 			\end{definition}
 			According to the stationarity assumption, these functions do not depend on the time. The state (resp. sate-action) value function represents the expected return that the agent will get by following the policy $\pi$ when in state $s$ (resp. when in state $s$ and after taking action $a$). The state value function satisfies a recursive identity called the\emph{ Bellman equation}\footnote{The state-action value function also satisfies a Bellman equation.}~\cite[Section\,3.5]{sutton2018reinforcement}:
 			\begin{equation}
-				V_\pi(s) = \sum_{a} \pi(a|s) \sum_{s', r}f(s', r |s, a)\left[r + \gamma V_\pi(s')\right],\quad \forall s\in\S.
+				V_\pi(s) = \sum_{a} \pi(a|s) \sum_{s', r}f(s', r |s, a)\left[r + \gamma V_\pi(s')\right],\quad \forall s\in\S. \label{eq:bellman}
 			\end{equation}
 			The Bellman equation expresses a relation between the value of a state and the value of its successor states. We can think of what it means as a one-step-ahead lookup on the return the agent can collect. In a state $s$, the agent can take an action $a$ and reach a state $s'$ with reward $r$. The additional return that can be collected from $s'$ is $V_\pi(s')$: it aggregates all the possible rewards the agent will get when starting again from $s'$. The Bellman equation discounts this future return that the agent will only enjoy from the next step, and averages all these possible outcomes with their probability of happening: this defines the value of the current state $s$.
 			\paragraph{Optimal value functions} The power of using value functions becomes clear when defining the\emph{ optimal value function}:
@@ -95,9 +100,12 @@
 			\begin{equation*}
 				\expected_{\pi^*}\left(G_t\right) \leq \max_\pi~\expected_\pi\left(G_t\right) = \sum_s \mu(s) V_\pi(s) \leq \sum_s \mu(s) V_{\pi^*}(s) = \expected_{\pi^*}\left(G_t\right).
 			\end{equation*}
-			So, the complicated optimization problem~\eqref{eq:mdp problem} can be solved by approximating the state-action value function $Q^*$, since an optimal policy can simply be derived from it. Most of the famous algorithms for RL like dynamic programming\needcite, Q-Learning~\cite{watkins1992q}, TD methods\needcite, or SARSA\needcite, are actually methods that try to estimate this $Q^*$ function.
-		\subsection{Constrained Markov decision processes}
-		While Markov decision processes are commonly used for RL tasks, they are not always the best-suited model. We have seen in the introduction that CMDPs are particularly adapted to describe RL tasks with safety concerns. We provide here a brief introduction to CMDPs. The main piece of literature in that field is~\cite{altman1999constrained}, and this section is mainly based on \cite[Chapter\,3]{altman1999constrained}.
+			So, the complicated optimization problem~\eqref{eq:mdp problem} can be solved by approximating the state-action value function $Q^*$, since an optimal policy can simply be derived from it. Most of the famous algorithms for RL like Q-Learning~\cite{watkins1992q}, TD methods\needcite, or SARSA\needcite, are actually methods that try to estimate this $Q^*$ function.
+			
+			\paragraph{Optimal policies} Markov decision processes are usually said to have a unique optimal policy~\cite{sutton2018reinforcement}, which then has to be the greedy policy $\pi^*$ of the previous paragraph. This property is only true under some assumptions on the initial state distribution $\mu$. For example, this property holds if the agent may be initialized in any state. However, consider the example where a region of the state space cannot be reached: the behaviour of the policy in that region does not matter, and the MDP has several different optimal policies. This subtlety is particularly important when dealing with safe MDPs, where the goal is that the agent does not reach specific regions of the state space.
+	
+		\subsection{Constrained Markov decision processes} \label{sec:cmdps preliminaries}
+		While Markov decision processes are commonly used for RL tasks, they are not always the best-suited model. We have seen in the introduction that CMDPs are particularly adapted to describe RL tasks with safety concerns. We provide here a brief introduction to CMDPs. This section is mainly based on \cite[Chapter\,3]{altman1999constrained}. We will not be as complete in our presentation of CMDPs as we have been for MDPs, and we refer the reader to~\cite{altman1999constrained} for a more detailed presentation.
 		\subsubsection{A constrained optimization problem}
 		The mathematical formalism of CMDPs is almost identical to the one of MDPs. In this work, we only consider MDPs constrained by a single scalar cost:
 		\begin{definition}
@@ -107,7 +115,7 @@
 				\item \A~is the set of actions,
 				\item $f$~is the dynamics\footnote{Bear in mind that our definition of the dynamics include the definition of the reward.}, which is assumed to satisfy the Markov property and to be stationary,
 				\item $\mu$~is the probability distribution of the initial state,
-				\item $c: \Q\to \R$, is a function describing an immediate cost that is sampled by the agent at every time step the same time as the reward and is allowed to be stochastic,
+				\item $c: \Q\to \R$~is a function describing an immediate cost that is sampled by the agent at every time step at the same time as the reward, and is allowed to be stochastic,
 				\item $\gammabar$ is the discount factor of the aggregated cost,
 				\item $d \in \R$ is the maximal acceptable aggregated cost.
 			\end{itemize}
@@ -121,8 +129,8 @@
 		\end{equation}
 		Note that Problem~\eqref{eq:cmdp problem} is very similar to Problem~\eqref{eq:mdp problem}: the only difference is the set of policies that is optimized upon. 
 		
-		\begin{example}
-			Chance constraints are a special case of cost-constrained CMDPs. For example, assume we are given a safe set~$\S_\text{safe}\subset\S$, and a maximal acceptable risk $\delta$. Also assume that states outside of $\S_\text{safe}$ are terminal. We want to constrain the policies to the one that stay in $\S_\text{safe}$ with probability at least $1 - \delta$:
+		\begin{example}[Chance constraints are a special case of cost-constrained CMDPs] \label{ex:chance constraints}
+			For example, assume we are given a safe set~$\S_\text{safe}\subset\S$, and a maximal acceptable risk $\delta$. Also assume that states outside of $\S_\text{safe}$ are terminal. We want to constrain the policies to stay in $\S_\text{safe}$ with probability at least $1 - \delta$:
 			\begin{equation*}
 				\P_\pi\left[\bigcap_{t=0}^\Tf\{S_t\in\S_\text{safe}\}\right] \geq 1 - \delta.
 			\end{equation*}
@@ -133,6 +141,73 @@
 			Hence, choosing $d = \delta$ gives the desired constraint.
 		\end{example} 
 		\subsubsection{Optimal policies}
-		The main difference between classical MDPs and CMDPs is their set of optimal policies.
+		One of the main differences between standard MDPs and CMDPs is their set of optimal policies. We have seen in Section~\ref{sec:preliminary mdps} that there always exists a deterministic policy that solves an MDP. This came from the strong relationship between optimal policies and the optimal value function. This property is not preserved in CMDPs: in fact, optimal policies are in general not deterministic, and so we cannot simply rely on value functions to find them.\par
+		The main theoretical tool used to study CMDPs is the\emph{ occupation measure} of a policy $\pi$:
+		\begin{equation}
+			\eta_\pi\,:\,(s, a)\in\Q\mapsto \lim_{t\to\Tf}\expected\left[\frac{1}{t}\sum_{u=0}^t\indicator_{\{s, a\}}(S_t, A_t)\right].
+		\end{equation}
+		The occupation measure intuitively represents the fraction of time spent in state-action $(s, a)$. A policy $\pi$ can be easily retrieved from its occupation measure $\eta$ by noting that:
+		\begin{equation}
+			\pi(a|s) = \frac{\eta(s, a)}{\sum_{a'\in\A}\eta(s, a')}.
+		\end{equation}
+		Hence, a trick similar to what we did for value functions can be done here as well: solve for the optimal occupation measure directly, instead of finding the policy from the complicated Problem~\eqref{eq:cmdp problem}. And it turns out that this is much easier a problem, since it boils down to solving a constrained linear program~\cite[Theorem\,3.3]{altman1999constrained}, for which lots of methods exist.
 		
-	\section{Viability theory} \label{sec:preliminary viability}
+		\paragraph{Intuitive explanation of stochastic optimal policies} Why is there such a huge difference between MDPs and CMDPs ? Why don't CMDPs have deterministic optimal policies in general ? Let us provide some intuition on this question based on the example of Figure~\ref{fig:cmdps stochastic optimal}. An unconstrained agent - that is, one which does not care about the cost - simply goes in $s=2$ and stays there, collecting a reward of $10$ every time. Now, consider a constrained agent with $\gammabar = 0.9$ and $\delta = 1$. It has an upper bound on the cost it is allowed to collect. If the agent goes in $s=2$ and stays there, as the unconstrained agent does, its expected discounted cost is $\frac{1}{1 - 0.9} = 10 > \delta$: this solution is not possible. The other deterministic option is to go in $s=1$ and stay there: in this case, the expected cost is simply $0$. The agent could collect more reward by visiting $s=2$ from time to time, and the frequency of its visit there is bounded by the total expected cost the agent is allowed to collect. Thus, the optimal constrained agent strikes a balance between the reward-optimal policy of the unconstrained agent and other actions that are less costly and permit an acceptable average cost. On this simple example, we can already infer that this stochastic behaviour should stop when the agent is not allowed to collect\emph{ any} cost, that is, when $\delta = 0$. We will see in Chapter~\ref{chap:safety from viability} that this is indeed the case.
+		\begin{figure}
+			\centering
+			\includegraphics{cost_constraint_example}
+			\caption{Here, $r$ is the reward collected when entering the state, and $c$ is the cost. The unconstrained optimal policy goes and stays in $s=2$. The constrained one switches between $s=1$ and $s=2$ depending on the accepted cost.}
+			\label{fig:cmdps stochastic optimal}
+		\end{figure} 
+		
+		\paragraph{Solving CMDPs} Since CMDPs can be expressed as a linear program, they can be solved using tools from linear programming. The main advantage of this is that linear programs can be very efficiently solved. For example, they always satisfy\emph{ strong duality}, which allows them to be treated as an unconstrained optimization problem simply by penalizing points that do not satisfy the constraints. Algorithms based on this linear program suffer from two main issues. The first one is scalability: the number of variables in the linear program scales linearly with the number of state-action pairs, and so exponentially with the number of dimensions of the problem. The second problem is that this approach is fundamentally model-based, since the linear program itself depends on the model. Hence, it greatly limits the applications of this result. Recently, Paternain et al.~\cite{paternain2019safe} have re-discovered the strong duality result for chance constraints in safe sets, and derive a primal-dual algorithm optimizing to solve CMDPs in a model-free setting. We believe this approach is very promising, and provide an extension of their results in Chapter~\ref{chap:safety from viability}. Based an another approach, the CPO algorithm~\cite{achiam2017constrained} extends policy gradient methods - which are a local optimization scheme for approximately solving the MDP problem~\eqref{eq:mdp problem} - to propose the first scalable CMDP solver. This is a milestone in making CMDPs computationally tractable, but this algorithm is hard to generalize to methods other than policy gradients because it provides little understanding of the structure of the underlying problem (contrary to value-based or duality-based methods).
+		
+	\section{Viability theory for RL} \label{sec:preliminary viability}
+	The definition of safety that we will take in Chapter~\ref{chap:safety from viability} is based on a failure set that the agent should avoid at all times. An important question that immediately arises is: considering its current state, is it possible for the agent to avoid failure? Forbidding the agent to take steps that immediately result in failure is not sufficient, since it may be in a state where it is doomed to fail without having failed yet. An intuitive example would be an agent controlling a car heading into a wall, but before collision: it is already too late. This is a general question not only in RL, but in the field of dynamical systems in general. An answer to it was formalized by Aubin et al. in~\cite{aubin2011viability} and is called\emph{ viability theory}. Recently~\cite{heim2020learnable}, viability theory has started to be applied to RL problems. We provide here a brief introduction to viability theory in the context of MDPs.
+	\subsection{Viability kernel, viable set}
+	\subsubsection{Problem setting}
+	In this section, and in the rest of this work, we restrict ourselves to\emph{ deterministic} MDPs. That is, the next state is a deterministic function of the previous state and action. With an abuse of notation (from the definition of the dynamics~\eqref{eq:dynamics}), we note:
+	\begin{equation}
+		s' = f(s, a),
+	\end{equation}
+	where $s'\in\S$ is the successor state of $s\in\S$ when taking action $a\in\A$. We are given a\emph{ failure set} $\SF\subset\S$ assumed to be\emph{ absorbing}: all states in the failure set are terminal and the agent needs to be reset after visiting them\footnote{This work can be extended to the case where this assumption is not true and agents can recover from failure, but this will ease the notations and the reasoning.}. This failure set can be defined arbitrarily, and typically contains bad outcomes the agent should avoid.
+	\subsubsection{A toy model: the hovership}\label{sec:hovership}
+	We use the toy model developed in~\cite{heim2020learnable} to illustrate the concepts developed further. We will also use it to illustrate our own concepts in Chapters~\ref{chap:safety from viability} and~\ref{chap:benchmark}. The toy model is described by the transition map of Figure~\ref{fig:hovership}. Intuitively, it  can represent a hovering spaceship affected by gravity, which is stronger near the ground. The ship can apply two level of thrusters, or allow itself to fall. Gravity gets stronger than the thrusters close to the ground. The failure set is $\SF = \{5\}$, and corresponds to crashing the ship.
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.6\textwidth]{hovership_viability.png}
+		\caption{The state space and viability kernel \SV~of the toy model (left), its transition map (middle), and viable and critical sets \QV~and \QC~(right). On the transition graph, the figures represent the next state when taking the column's action when in the row's state. Both \QV~and \SV~are highlighted in green. State-action pairs that result directly in failure are highlighted in orange, and the ones that result in unviable states are in yellow. The critical set \QC~is striped in light red. \figfrom{\cite{heim2020learnable}}}
+		\label{fig:hovership}
+	\end{figure}
+	\subsubsection{Viability kernel and viable set}
+	We can now define the main mathematical object of viability theory:
+	\begin{definition}[Viability kernel]
+		The \emph{viability kernel} $\SV\subset\S\setminus\SF$ is the maximal set of all states $s\in\S$, from which there exists an action that keeps the system inside $\SV$\cite[Chapter~1]{aubin2011viability}.
+	\end{definition}
+	By definition, states outside \SV~have already failed or will fail within finite time. On the hovership, the viability kernel is $\SV = \{1, 2, 3\}$. From each of these states, it is possible to avoid failure at all times by carefully choosing the actions. Note that the viability kernel is in general not ergodic: it is impossible to go back to states $1$ or $2$ when in state $3$. The viability kernel is a superset of the ergodic sets of~\cite{moldovan2012safe} and~\cite{turchetta2016safe}. In fact, the viability kernel is rigorously defined as the largest\emph{ controllable invariant}\footnote{A set is controllable invariant if there exists a policy that makes the agent stay in it at all times.} set of states with an empty intersection with the failure set~\cite{aubin2011viability}.\par
+	Following the work of~\cite{heim2020learnable}, we define the viable set:
+	\begin{definition}[Viable set]
+		The \emph{viable set} $\QV\subset\Q$ is the maximal set of all state-actions $(s, a)$, such that $s' = f(s, a) \in\SV$.
+	\end{definition}
+	The viable set naturally extends the viability kernel in state-action space. There exists an intricate relationship between \SV~and \QV. For example, the viability kernel is empty if, and only of, the viable set is empty. Or similarly: for every state $s \in \SV$, there exists an action $a\in\A$ such that $(s, a) \in \QV$. These simple properties are immediate consequences of the definition, but will play a crucial role. On the hovership example, the viable set is the set of state-actions that end up in states $1, 2$ or $3$.\par
+	Finally, we define a new notion called the critical set:
+	\begin{definition}
+		The\emph{ critical set} $\QC\subset\Q\setminus\QV$~is the set of state-actions $(s, a)\in\Q\setminus\QV$ such that $s\in\SV$.
+	\end{definition}
+	The critical set is the set of state-actions leaving the viability kernel. If the agent visits a state-action in the critical set, it is doomed to fail. Conversely, an agent in the viability kernel has to pass through the critical set in order to go to failure.
+	\subsection{A learnable safety measure}
+	We introduce here the notion of \Q-safety measure first proposed in~\cite{heim2020learnable}. This concept will be of particular interest to derive our algorithms in Chapter~\ref{chap:benchmark}.\par
+	The safety measure is defined on state space as follows:
+	\begin{definition}[Safety measure]
+		The\emph{ safety measure} $\Lambda$ is the $n$-dimensional volume of the viable set \QV. When applied to a point $s\in\S$, $\Lambda(s) \in \R_{\geq0}$ is the measure of the corresponding slice of \QV.
+	\end{definition}
+	This definition is a formalization of the first properties of the viable set that we have highlighted in the previous paragraph: large values of $\Lambda(s)$ mean that there are a lot of actions that keep the agent in the viability kernel. Similarly, saying that $\Lambda(s) = 0$ exactly means that $s$ is not viable\footnote{In the finite setting. Indeed, there may exist unmeasurable sets of unviable actions in the infinite setting, but we will stay in the finite setting here.}. We immediately extend this notion to state-action space by mapping it through the dynamics:
+	\begin{definition}[\Q-safety measure]
+		The\emph{ \Q-safety measure} $\Lambda_\Q$ is defined as:
+		\begin{equation*}
+			\Lambda_\Q(s, a) = \Lambda[f(s, a)],\quad \forall (s, a) \in \Q.
+		\end{equation*}
+	\end{definition}
+	The \Q-safety measure can be seen as a one-step look-ahead of the safety measure. It answers the question: \enquote{what is the measure of the state I end up in by taking this action ?}. The \Q-safety measure already takes the dynamics into account. An agent that knows this measure is able to always avoid failure (although this agent may be very bad at maximizing the return), by only following actions with a non-zero measure.
+	\paragraph{Learning the \Q-safety measure} The \Q-safety measure is generally unknown, even in the model-based setting. Indeed, computing it is equivalent to computing the viability kernel which is a task known to be computationally expensive~\cite{aubin2011viability}. In~\cite{heim2020learnable}, the authors propose an algorithm for learning the \Q-safety measure from data by modeling it with a Gaussian process (GP). They derive an active sampling rule that enables their agent to learn the measure while being very sample-efficient: the agent learns quickly how to behave in order not to fail. Recall that one of our goals is to propose an agent able to learn how to maximize the return while quickly learning how not to fail. Most of the algorithms that we will propose in Chapter~\ref{chap:benchmark} will be based on the algorithm presented in~\cite{heim2020learnable}.
+	\TODO{Improve conclusion of Chapter}

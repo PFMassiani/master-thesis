@@ -2,6 +2,16 @@
 \newtheorem{definition}{Definition}
 \newtheorem{assumption}{Assumption}
 \newtheorem{example}{Example}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+\newenvironment{subproof}[1][\proofname]{%
+	\renewcommand{\qedsymbol}{$\blacksquare$}%
+	\begin{proof}[#1]%
+	}{%
+\end{proof}%
+}
 
 %% MDPs notations
 \renewcommand{\S}{\ensuremath{\mathcal{S}}}
@@ -11,12 +21,32 @@
 \newcommand{\R}{\ensuremath{\mathbb{R}}}
 \newcommand{\Tf}{\ensuremath{{T_f}}}
 \newcommand{\gammabar}{\ensuremath{\bar{\gamma}}}
+\newcommand\Rexp{\ensuremath{R^{\text{exp}}}}
+
+% Viability notations
+\newcommand{\SF}{\ensuremath{{\S_{F}}}}
+\newcommand{\SV}{\ensuremath{{\S_{V}}}}
+\newcommand{\SU}{\ensuremath{{\S_{U}}}}
+\newcommand{\QV}{\ensuremath{\Q_{V}}}
+\newcommand{\QC}{\ensuremath{\Q_{C}}}
 
 % Math operators
 \renewcommand{\P}{\ensuremath{\mathbb{P}}}
 \newcommand\expected{\ensuremath{\mathbb{E}}}
+\newcommand\condexpected[3]{\ensuremath{\expected_{#1}\left[#2\middle|#3\right]}}
 \DeclareMathOperator*{\argmax}{argmax}
 \newcommand{\indicator}{\ensuremath{\mathds{1}}}
+\newcommand{\eqdef}{\ensuremath{\dot{=}}}
+\DeclareMathOperator{\reach}{Reach}
+\DeclareMathOperator{\support}{supp}
+\newcommand{\goesto}[1]{\ensuremath{\xrightarrow[#1]{}}}
+\renewcommand{\L}{\ensuremath{\mathcal{L}}}
+\newcommand\card[1]{{\ensuremath{\left|#1\right|}}}
+\newcommand{\thetamax}{\ensuremath{\theta_\text{max}}}
+\newcommand{\thetapalpha}{\ensuremath{\theta_{p, \alpha}}}
+\newcommand{\Deltatarget}{\ensuremath{\Delta_\text{target}}}
 
 % Utils
 \newcommand{\needcite}{{\color{red} {\textbf [CITATION]}}}
+\newcommand{\figfrom}[1]{{\small Source: #1}}
+\newcommand{\TODO}[1]{{\color{red}{\bfseries TODO:} #1}}

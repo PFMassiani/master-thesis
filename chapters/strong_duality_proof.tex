@@ -1,0 +1,145 @@
+\chapter{Proof of Theorem~\ref{thm:strong duality}} \label{chap:proof strong duality}
+\paragraph{Notations} In all of the following, we define the unviable set $\SU = \S\setminus\SV$. We also remind the reader that $T = (S_0, A_0, S_1, A_1, \hdots)$ is the random variable denoting the trajectory, and we define:
+$$
+	\rho(T) = \sum_{t=0}^\Tf\gamma^t\indicator_{\SF}(S_{t+1}).
+$$
+With this notation, we have: $\rho_\pi = \expected_\pi(\rho(T))$. Finally, for all $s\in\S$, we note $\T(s)$ the set of trajectories $\tau = (s_0, a_0, s_1, a_1, \hdots)$ such that $s_0 = s$.
+
+\section{Weak duality}
+We start by proving the following lemma, that emphasizes the fact that the penalized optimal value function~\eqref{eq:penalized value} is a Lagrangian relaxation of the constrained value function~\eqref{eq:constrained state value}:
+\begin{lemma}[Weak duality] \label{lemma:weak duality}
+	Let $s\in\S$. For any policy $\pi$ and penalty $p$, consider the Lagrangian\footnote{The Lagrangian also depends on the state $s$, but this dependency is dropped in the notations for clarity.}:
+	\begin{equation}
+	\L(\pi, p) = \condexpected{\pi}{\sum_{t=0}^\Tf\gamma^tR_t}{S_0 = s} - p\cdot \condexpected{\pi}{\rho(T)}{S_0 = s}.
+	\label{eq:lagrangian}
+	\end{equation}
+	The function \L~is a Lagrangian associated to the problem defining the constrained state value function~\eqref{eq:constrained state value}, and $V_p$ is an evaluation of the corresponding Lagrange dual function. Formally:
+	\begin{align}
+	V^c(s) & = \max_\pi~\inf_p~\L(\pi, p), \label{eq:weakduality:const}\\
+	\forall p,~V_p(s) & = \max_\pi~\L(\pi, p). \label{eq:weakduality:pen}
+	\end{align}
+	Then, weak duality holds:
+	\begin{equation}
+	\forall p,~V_p(s) \geq V^c(s).
+	\label{eq:weakduality}
+	\end{equation}
+	\label{lemma:weakduality}
+\end{lemma}
+\begin{proof}
+	Equation~\eqref{eq:weakduality:const} comes from the fact that: $$\inf_p \L(\pi, p) = \begin{dcases}
+	\condexpected{\pi}{\sum_{t=0}^\Tf\gamma^tR_t}{S_0 = s},& \text{if } \condexpected{\pi}{\rho(T)}{S_0 = s} = 0,\\
+	-\infty, & \text{otherwise,}
+	\end{dcases}
+	$$
+	so the maximum of this quantity is obtained when the constraint is satisfied. Equation~\eqref{eq:weakduality:pen} is immediate by linearity of the conditional expected value. Now, weak duality is obtained by noting that, for all $p$:
+	$$
+	V_p(s) \geq \inf_q V_q(s) = \inf_q \max_\pi \L(\pi, q) \geq \max_\pi \inf_q \L(\pi, q) = V^c(s),
+	$$
+	where the second inequality comes from the general \emph{max-min} inequality.
+\end{proof}
+
+\section{Existence of safe policies}
+Another useful lemma is the following, which largely relies on the assumption that $\SV\neq\emptyset$:
+\begin{lemma}[Existence of safe policies]
+	There exists a deterministic safe policy.
+	\label{lemma:safe policy}
+\end{lemma}
+\begin{proof}
+	This is an immediate consequence of Corollary~\ref{clry:safe policies on qc}. Indeed, let us construct a safe policy. For any state $s\in\SV$, pick an action $a_s\in\A$ such that $(s, a_s)\in\QV$. For any state $s\in\SU$, pick any action $a_s\in\A$. Now, consider the policy:
+	$$
+		\pi(a|s) = \indicator_{\{a_s\}}(a).
+	$$
+	Let $(a, s)\in\QC\cap(\reach_\pi\times\A)$. Since $s\in\SV$ and $(s, a)\notin\QV$, then, $a\neq a_s$, and so $\pi(a|s) = 0$. So, by Corollary~\ref{clry:safe policies on qc}, $\pi$ is safe.
+\end{proof}
+
+\section{Value bound outside of \SV}
+The following lemma gives a bound on the penalized value function outside of \SV:
+\begin{lemma}[Bound on $V_p$]
+	There exists $K\in\mathbb{R}$ such that the following holds:
+	\begin{equation}
+	\forall p\in\mathbb{R},~\forall s\in\SU,~V_p(s) \leq K - \gamma^\card{\SU}p
+	\end{equation}
+	\label{lemma:value bound outside sv}
+\end{lemma}
+\begin{proof}
+	Let $p\in\mathbb{R}$ and $s\in\SU$. Classic results on the $\max$ function give:
+	$$
+	V_p(s) \leq \max_\pi\left(\sum_{t=0}^\Tf\gamma^t\condexpected{\pi}{R_t}{S_0=s}\right) - p\min_\pi\condexpected{\pi}{\rho(T)}{S_0=s}.
+	$$
+	Now, $K\eqdef \max_{s'\in\SU}\max_\pi\left(\sum_{t=0}^\Tf\gamma^t\condexpected{\pi}{R_t}{S_0=s'}\right)$ is a constant. We show that:
+	$$
+		\min_\pi\condexpected{\pi}{\rho(T)}{S_0=s} \geq \gamma^\card{\SU}.
+	$$
+	To do so, we adapt the proof of Lemma~1 from \cite{heim2020learnable} and show that: 
+	$$
+		\rho(\tau) = \sum_{t=0}^\Tf\gamma^t\indicator_\SF(s_t) \geq \gamma^\card{\SU},
+	$$ 
+	for all trajectory $\tau = (s_0, a_0, \hdots)\in\T(s)$. Indeed, such a trajectory fails within finite time, since $s\in\SU$. Now, before it fails, it can only explore states in \SU, otherwise it would explore a state in \SV~but this is not possible since $s\in\SU$. Moreover, it cannot visit any state in \SU~more than once: otherwise, there would be a cycle in the trajectory, and so it would be possible to avoid failure when starting from $s$. Consequently, the trajectory can take at most $\card{\SU}$ steps before failing. Hence, there exists $t\leq\card{\SU},~\indicator_\SF(s_t) = 1$, which shows $\rho(\tau) \geq \gamma^\card{\SU}$. Consequently: 
+	$$\min_\pi\condexpected{\pi}{\rho(T)}{S_0=s} = \min_\pi\condexpected{\pi}{\rho(T)}{S_0=s} \geq \gamma^\card{\SU}.$$
+\end{proof}
+
+\section{Main proof}
+We are now ready to prove Theorem~\ref{thm:strong duality}.
+\begin{proof}
+	First of all, it directly follows from Lemma~\ref{lemma:value bound outside sv} that Equation~\eqref{eq:strong duality su} holds. So we only have to prove Equation~\eqref{eq:strong duality sv}. Note that, from weak duality (Lemma~\ref{lemma:weak duality}), we already have $\forall p\in\mathbb{R},~\forall s\in\SV, V_p(s) \geq V^c(s)$. We will show that:
+	\begin{equation}
+	\exists p^*\in\mathbb{R},~\forall p \geq p^*,~\forall s\in\SV,~V^p(s) \leq V^c(s).
+	\label{eq:thm:strongduality:proof:converseinequality}
+	\end{equation}
+	To do so, we will show that, for high enough penalties, there exists a policy that achieves the optimal penalized value~\eqref{eq:penalized value} and that is also safe - thus suboptimal for the constrained value~\eqref{eq:constrained state value}. The result will follow immediately.\par
+	For all $p\in\mathbb{R}$, the function $V_p: \S\to\mathbb{R}$ is the value function of a RL problem, so it solves the optimal Bellman equation~\cite[Chapter~3]{sutton2018reinforcement}:
+	\begin{equation}
+	\forall s\in\S,~ V_p(s) = \max_{a\in\A} \Rexp_{t+1}(s, a) - p \cdot \indicator_\SF(f(s,a)) + \gamma \cdot V_p(f(s,a)),
+	\label{eq:thm:strongduality:proof:bellman}
+	\end{equation}
+	where $\Rexp_{t+1}(s, a) = \expected(R_{t+1}|S_t = s, A_t = a)$. For any penalty $p$, let $\pi_p$ be a policy that is greedy with respect to the optimal value function $V_p$. This policy chooses, for each state $s\in\S$, an action achieving the $\argmax$ of the right-hand side of Equation~\eqref{eq:thm:strongduality:proof:bellman}, and is optimal~\cite[Chapter~3]{sutton2018reinforcement}. We show that:
+	\begin{equation}
+	\forall\,(s,a)\in\QC,~\exists p^*\in\mathbb{R},~\forall p\geq p^*,~(s\in\reach_{\pi_p}\implies\pi_p(a|s) = 0).
+	\label{eq:thm:strongduality:proof:localp*}
+	\end{equation}
+	\begin{subproof}[Proof of Equation~\eqref{eq:thm:strongduality:proof:localp*}]
+		We prove this result by contradiction. Assume Equation~\eqref{eq:thm:strongduality:proof:localp*} is false, that is, there exists $(s, a) \in\QC$ such that there exists a sequence of penalties $(p_n)_{n\in\mathbb{N}}$ such that:
+		\begin{itemize}
+			\item $\lim_{n\to\infty}p_n = \infty$,
+			\item for all $n\in\mathbb{N},~s\in\reach_{\pi_{p_n}}$
+			\item for all $n\in\mathbb{N},~\pi_{p_n}(a|s) > 0$.
+		\end{itemize}
+		Intuitively, $s$ is a state in the reach of all policies $\pi_{p_n}$ and from which all of these optimal policies  give a nonzero probability of picking action $a$ when the penalty grows, thus leaving the viability kernel. For all $n\in\mathbb{N},~\pi_{p_n}$ acts greedily on $V_{p_n}$, so we have:
+		\begin{equation}
+		a\in\argmax_{b\in\A}V_{p_n}(f(s, b)).
+		\label{eq:thm:strongduality:proof:greedyaction}
+		\end{equation}
+		Since $V_{p_n}$ satisfies the Bellman equation~\eqref{eq:thm:strongduality:proof:bellman}, Equation~\eqref{eq:thm:strongduality:proof:greedyaction} is equivalent to:
+		\begin{equation}
+		\begin{split}
+		\forall b\in\A, V_{p_n}(f(s,a))\geq
+		&\frac{1}{\gamma}(\Rexp_{t+1}(s,b) - \Rexp_{t+1}(s,a)) \\
+		&-\frac{{p_n}}{\gamma}(\indicator_\SF(f(s,b))-\indicator_\SF(f(s,a))) \\
+		&+ V_{p_n}(f(s,b)).
+		\end{split}
+		\label{eq:thm:strongduality:proof:vplowerbound}
+		\end{equation}
+		Now, according to Lemma~\ref{lemma:value bound outside sv}, and since $f(s,a)\in\SU$, we have: $$\lim_{n\to\infty}V_{p_n}(f(s,a)) = -\infty.$$
+		Take $b\in\A$ such that $(s,b)\in\QV$. Such a $b$ exists, because $s\in\SV$. Since $\indicator_\SF(f(s,b)) = 0$, the function:
+		$$
+		n\mapsto-\frac{p_n}{\gamma}(\indicator_\SF(f(s,b)) - \indicator_\SF(f(s,a))),
+		$$
+		is lower bounded. Consequently, $\lim_{n\to\infty}V_{p_n}(f(s,b)) = - \infty$. According to weak duality (Lemma~\ref{lemma:weakduality}), $V_{p_n}$ is an upper bound of $V^c$, so:
+		\begin{equation}
+		V^c(f(s, b)) = - \infty.
+		\label{eq:thm:strongduality:proof:contradiction}
+		\end{equation}
+		Equation~\eqref{eq:thm:strongduality:proof:contradiction} is a contradiction. Indeed, we know from Lemma~\ref{lemma:safe policy} that there exists a safe policy, so for all $s\in\SV,~V^c(s) > -\infty$. Indeed, any feasible policy gives a finite value for the optimization objective of~\eqref{eq:constrained state value}. Since $f(s,b)\in\SV$, Equation~\eqref{eq:thm:strongduality:proof:contradiction} is indeed a contradiction, and thus Equation~\eqref{eq:thm:strongduality:proof:localp*} holds.
+	\end{subproof}
+	Equation~\eqref{eq:thm:strongduality:proof:localp*} gives us a \emph{local} value for $p^*$, depending on the point of \QC~we want the policies to stop considering. We make this $p^*$ global by taking the maximum. For any $q\in\QC$, let $p^*(q)$ be a $p^*$ as given by Equation~\eqref{eq:thm:strongduality:proof:localp*}. Since $\QC$ is finite and with an abuse of notation, we can define $p^* = \max_{q\in\QC}p^*(q)$. For any penalty $p \geq p^*$, it holds:
+	\begin{equation}
+	\forall (s,a)\in\QC~\cap~(\reach_{\pi_p}\times\A),~\pi_p(a|s) = 0.
+	\end{equation}
+	According to Corollary~\ref{clry:safe policies on qc}, this means that for all $p \geq p^*,~\pi_p$ is safe. We are now ready to conclude the proof. For all $p \geq p^*$, the following three equations hold:
+	\begin{alignat}{8}
+	&\forall~s\in\SV&,~&V_p(s)& &=&~ &\condexpected{\pi_p}{\sum_{t=0}^\infty\gamma^tR_t}{S_0=s} - p\cdot\rho^{\pi_p}(s),&\\
+	&\forall~s\in\SV&,~&V^c(s) & &\geq&~ &\condexpected{\pi_p}{\sum_{t=0}^\infty\gamma^tR_t}{S_0=s},&\\
+	&\forall~s\in\SV&,~&\rho_{\pi_p}(s)&~&=&~&0.&
+	\end{alignat}
+	Combining these show that Equation~\eqref{eq:thm:strongduality:proof:converseinequality} holds, and so does Equation~\eqref{eq:strong duality sv}: this concludes the proof of Theorem~\ref{thm:strong duality}.
+\end{proof}

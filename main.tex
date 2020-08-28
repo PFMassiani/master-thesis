@@ -17,20 +17,24 @@
 \usepackage[backend=biber]{biblatex}
 \addbibresource{references.bib}
 
+\usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{csquotes}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{dsfont}
+\usepackage{mathtools}
 
 \graphicspath{ {images/} }
 \pagestyle{fancy}
-%\fancyhead[RO,LE]{Chapter \thechapter. \chaptername}
 \lhead{\nouppercase{\rightmark}}
 \rhead{\nouppercase{\leftmark}}
+\fancyhead[RO,RE]{Chapter \thechapter}
 
 \input{custom_commands}
 
@@ -58,7 +62,9 @@
 	\input{chapters/future_work}
 	\input{chapters/conclusion}
 	
-	\printbibliography
+	\appendix
+	\input{chapters/strong_duality_proof}
 	
+	\printbibliography
 	
 \end{document}
