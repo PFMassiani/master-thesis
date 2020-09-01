@@ -93,7 +93,7 @@ We can restate this theorem in a more practical way by using the critical set:
 \subsubsection{Discussion}
 \paragraph{Safety does not constrain the policy everywhere} Corollary~\ref{clry:safe policies on qc} shows that safety does not constrain the policy everywhere. Indeed, it makes no statement on how actions should be picked in states that cannot be reached. Of course, the condition of equation~\eqref{eq:safe policies on qc} can still be enforced on the whole critical set \QC, but this is only a sufficient condition for safety.
 
-\paragraph{A classical MDP in a subset of \Q} Policies that satisfy the safety constraint are exactly the ones that effectively prevent the agent from exploring a whole region of the state-action space (namely, $\Q\setminus\QV$). Hence, it is possible to see the safety-constrained CMDP~\eqref{eq:chance constrained problem} as a classical MDP with a modified state space $\SV$ and a state-dependent action space $\A(s) = \{a\in\A~|~(s, a)\in\QV\}$. This consideration hints at the fact that most tools specific to MDPs (such as value functions) can actually be used for this CMDP. The main point of Section~\ref{sec:strong duality} is to formalize this intuition.
+\paragraph{A classical MDP in a subset of \Q} Policies that satisfy the safety constraint are exactly the ones that effectively prevent the agent from exploring a whole region of the state-action space (namely, $\Q\setminus\QV$). Moreover, any time the agent picks an action in \QV, it ends up in \SV again: the viability kernel is\emph{ positively invariant} under safe policies. Hence, it is possible to see the safety-constrained CMDP~\eqref{eq:chance constrained problem} as a classical MDP with a modified state space $\SV$ and a state-dependent action space $\A(s) = \{a\in\A~|~(s, a)\in\QV\}$. This consideration hints at the fact that most tools specific to MDPs (such as value functions) can actually be used for this CMDP. The main point of Section~\ref{sec:strong duality} is to formalize this intuition.
 
 \paragraph{Safety and initial state distribution} The existence of safe policies is largely conditioned by the initial state distribution $\mu$. Its support must indeed be included in the viability kernel for safe policies to exist, since we always have $\support(\mu) \subset \reach_\pi$. This formalizes the intuition that safety cannot be ensured if the agent is initialized in unviable states. If this condition is not satisfied, then the definition of safety needs to be changed, for example by allowing a non-zero probability of failure.
 
@@ -196,7 +196,7 @@ The proof of Theorem~\ref{thm:strong duality} can be found in Appendix~\ref{chap
 
 \paragraph{Scaling the penalty is easy} This result is stronger than what it generally found in the literature. In~\cite{altman1999constrained} or~\cite{paternain2019safe}, the only guarantee is that there exists a penalty for which the penalized policy is safe and optimal. The fact that\emph{ any} penalty greater than $p^*$ proves that it is unnecessary to use primal-dual algorithms that also optimize on the value of the penalty. However, as Section~\ref{sec:parameterization} emphasizes it, Theorem~\ref{thm:strong duality} only holds when optimizing on the set of\emph{ all} policies in the penalized problem.
 
-\paragraph{Bounds on the minimal value of $p^*$} The theorem does not provide any information on what is the minimal value of $p^*$. It turns out that conservative estimates can be given: for example, it can be shown\footnote{This is just given as an example and is not proven here.} that in the case of a deterministic reward $R$, the quantity: 
+\paragraph{Bounds on the minimal value of $p^*$} \label{sec:gamma p trade off} The theorem does not provide any information on what is the minimal value of $p^*$. It turns out that conservative estimates can be given: for example, it can be shown\footnote{This is just given as an example and is not proven here.} that in the case of a deterministic reward $R$, the quantity: 
 $$
 	\frac{1}{\gamma^{|\S\setminus\SV|}}\max_{(s,a)\in\Q\setminus\QV}R(s, a) + (1 - \gamma)\min_{(s, a)\in\QV}R(s, a),
 $$
@@ -346,7 +346,7 @@ But recall that the parameter $\theta$ should be lower than \thetamax. Hence, th
 By combining this equation with equations~\eqref{eq:theta max}--\eqref{eq:theta p alpha}, we get the following expression for the duality gap:
 \begin{equation}
 	\Delta_p^\alpha = \begin{dcases}
-	\frac{1 - \frac{1}{\alpha}}{(\alpha p)^\frac{\alpha}{\alpha - 1}}, &\quad\text{if}~\thetapalpha\leq\thetamax,\\
+	\frac{1 - \frac{1}{\alpha}}{(\alpha p)^\frac{1}{\alpha - 1}}, &\quad\text{if}~\thetapalpha\leq\thetamax,\\
 	p\cdot(\thetamax - 1) + \thetamax,&\quad\text{otherwise}.
 	\end{dcases} \label{eq:duality gap}
 \end{equation}
@@ -359,7 +359,7 @@ Now, assume that we aim at parameterizing the problem so the duality gap $\Delta
 		\frac{\thetamax - \Deltatarget}{1 - \thetamax},&\quad\text{otherwise}.
 	\end{dcases}\label{eq:p alpha}
 \end{equation}
-This relation expresses the value the penalty should have in order to achieve the duality gap \Deltatarget~with the hyperparameter $\alpha$. Since \thetamax~also depends on $\alpha$, this relation is quite complex.
+This relation expresses the value the penalty should have in order to achieve the duality gap \Deltatarget~with the hyperparameter $\alpha$. Recall that \thetamax~also depends on $\alpha$. There may be better better penalties that achieve a lower duality gap: this value is the one for which the tolerance is met. Typically, it can be found by primal-dual algorithms whose stopping criterion depend on the gap.
 
 \subsubsection{The risk cannot be inferred from the duality gap}
 For a given choice of $\alpha$ and with the penalty $p$ given by~\eqref{eq:p alpha}, the risk $\rho_{\alpha}$ of the optimal penalized policy is:
@@ -369,13 +369,13 @@ For a given choice of $\alpha$ and with the penalty $p$ given by~\eqref{eq:p alp
 		1 - \thetamax,&\quad\text{otherwise}.
 	\end{dcases} \label{eq:risk alpha}
 \end{equation}
-Getting an explicit formula in terms of $\alpha$ is quite hard because of the implicit dependency in the conditioning, but we do not need it to analyze this result. The plot of the two functions that define the risk can be found on Figure~\ref{fig:risk plot}. 
-\paragraph{Discussion} We can see on Figure~\ref{fig:risk plot} that, for a given value of \Deltatarget, the risk can vary a lot depending on the value of $\alpha$. When $\alpha$ grows, the two possible values of the risk decrease. However, for low values of $\alpha$, the two values can get very high: in the worst cases, the agent can have a $50\%$ probability of failing. The point here is not to say that hyperparameters have an influence on the risk of the learned policy: this would be a commonplace. The interesting thing is that, for all of these values of $\alpha$ (and thus, for all of the corresponding values of the risk), the duality gap is unchanged and is equal to \Deltatarget. The key point is that a poor choice of hyperparameters and of the penalty can result in very risky policies while achieving the desired expected return.
+Getting an explicit formula in terms of $\alpha$ is quite hard because of the implicit dependency in the conditioning. The risk can still be evaluated using numerical methods, and is plotted on Figure~\ref{fig:risk plot}. 
+\paragraph{Discussion} Figure~\ref{fig:risk plot} shows that the risk can vary a lot depending on the value of $\alpha$. No matter the value of $\Deltatarget > 0$, a poor choice of $\alpha$ can result in agents that have a $50\%$ probability of failing. And, for all values of $\alpha$, these agents achieve\emph{ exactly the same duality gap}: this duality gap is thus a very poor indicator of the risk of the learned policy. When solving safe RL problems by penalizing failures with parameterized policies, \emph{controlling that the resulting duality gap is small is not sufficient to ensure approximate safety of the learned policy}: this risk needs to be evaluated and controlled independently.
 
 \begin{figure}
 	\centering
 	\includegraphics[width=0.5\textwidth]{risk_counterexample}
-	\caption{The two branches defining the risk in equation~\eqref{eq:risk alpha}. The curves where the value of \Deltatarget~is specified correspond to the branch $\thetapalpha\leq\thetamax$ for the corresponding value of \Deltatarget. No matter what the condition is, the risk $\rho_\alpha$ is read either on the blue curve or on one of the other ones.}
+	\caption{The risk~\eqref{eq:risk alpha} of the optimal policy when $p$ is chosen to ensure that $\Delta_p^\alpha = \Deltatarget$. For low values of $\alpha$, we have $\theta_{p,\alpha} > \thetamax$: the expression defining the risk in Equation~\eqref{eq:risk alpha} changes, causing the slope break visible on every curve. Then, the risk does not depend on $\Deltatarget$.}
 	\label{fig:risk plot}
 \end{figure}
 

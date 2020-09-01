@@ -195,7 +195,7 @@
 		The\emph{ critical set} $\QC\subset\Q\setminus\QV$~is the set of state-actions $(s, a)\in\Q\setminus\QV$ such that $s\in\SV$.
 	\end{definition}
 	The critical set is the set of state-actions leaving the viability kernel. If the agent visits a state-action in the critical set, it is doomed to fail. Conversely, an agent in the viability kernel has to pass through the critical set in order to go to failure.
-	\subsection{A learnable safety measure}
+	\subsection{A learnable safety measure} \label{sec:safety measure}
 	We introduce here the notion of \Q-safety measure first proposed in~\cite{heim2020learnable}. This concept will be of particular interest to derive our algorithms in Chapter~\ref{chap:benchmark}.\par
 	The safety measure is defined on state space as follows:
 	\begin{definition}[Safety measure]
@@ -205,9 +205,29 @@
 	\begin{definition}[\Q-safety measure]
 		The\emph{ \Q-safety measure} $\Lambda_\Q$ is defined as:
 		\begin{equation*}
-			\Lambda_\Q(s, a) = \Lambda[f(s, a)],\quad \forall (s, a) \in \Q.
+			\Lambda_\Q(s, a) = \Lambda[f(s, a)],\quad \forall (s, a) \in \Q. \label{eq:q safety measure}
 		\end{equation*}
 	\end{definition}
 	The \Q-safety measure can be seen as a one-step look-ahead of the safety measure. It answers the question: \enquote{what is the measure of the state I end up in by taking this action ?}. The \Q-safety measure already takes the dynamics into account. An agent that knows this measure is able to always avoid failure (although this agent may be very bad at maximizing the return), by only following actions with a non-zero measure.
-	\paragraph{Learning the \Q-safety measure} The \Q-safety measure is generally unknown, even in the model-based setting. Indeed, computing it is equivalent to computing the viability kernel which is a task known to be computationally expensive~\cite{aubin2011viability}. In~\cite{heim2020learnable}, the authors propose an algorithm for learning the \Q-safety measure from data by modeling it with a Gaussian process (GP). They derive an active sampling rule that enables their agent to learn the measure while being very sample-efficient: the agent learns quickly how to behave in order not to fail. Recall that one of our goals is to propose an agent able to learn how to maximize the return while quickly learning how not to fail. Most of the algorithms that we will propose in Chapter~\ref{chap:benchmark} will be based on the algorithm presented in~\cite{heim2020learnable}.
-	\TODO{Improve conclusion of Chapter}
+	\subsubsection{Learning the \Q-safety measure} The \Q-safety measure is generally unknown, even in the model-based setting. Indeed, computing it is equivalent to computing the viability kernel which is a task known to be computationally expensive~\cite{aubin2011viability}. \textcite{heim2020learnable} propose an algorithm to learn the \Q-safety measure from data by modeling it with a Gaussian process (GP). This algorithm will be central for the ones we present in Chapter~\ref{chap:benchmark}, so we briefly describe it here.
+	\paragraph{Gaussian processes as function approximators} Gaussian processes are a powerful and adaptable machine learning tool commonly used to model unknown functions from data. More specifically, the prediction of a GP is composed of a\emph{ mean} - which is often taken as the prediction - and a\emph{ covariance} - which expresses how confident the GP is about the value it gives. For a more thorough explanation of GPs, we refer the reader to~\cite{williams2006gaussian}. 
+	
+	\paragraph{Probabilistic level sets} Given an approximation \LQhat~of the safety measure, the authors of~\cite{heim2020learnable} derive two estimates of the viable set: the\emph{ optimistic set}~\Qopt, and the\emph{ cautious set}~\Qcaut. They are parameterized by the three scalars $\gamma_\text{opt}, \gamma_\text{caut}$, and $\lambda_\text{caut}$, that can be interpreted as follows: for any state-action $(s,a)$ in \Qopt~(resp. \Qcaut), the safety measure is greater than $0$ (resp. $\lambda_\text{caut}$) at $(s, a)$ with probability $\gamma_\text{opt}$ (resp. $\gamma_\text{caut}$).  Hence, these two sets can be interpreted as different estimates of the viable set \QV~corresponding to difference confidence intervals. The parameters are chosen such that $\Qcaut \subset \Qopt$.
+	
+	\paragraph{Iterative estimation of the measure} The safety measure is estimated iteratively as follows~\cite{heim2020learnable}:
+	\begin{itemize}
+		\item Input: initial state $s_0$, initial safety measure $\LQhat$;
+		\item Repeat until convergence, with $i$ the number of steps:
+		\begin{enumerate}
+			\item Evaluate the probabilistic level sets \Qopt~and \Qcaut from \LQhat;
+			\item Choose an action $a$ to take:
+			\begin{itemize}
+				\item If an action is available in \Qcaut~from the current state, then pick such an action that maximizes the information gain\footnote{The covariance of the GP};
+				\item Otherwise, pick the action that maximizes the probability of that action being in \Qcaut;
+			\end{itemize}
+			\item Take that action: end up in state $s_{i+1}$;
+			\item If the agent failed: add $((s_i, a_i), 0)$ to the dataset of \LQhat, and reset the agent;
+			\item Otherwise, compute the state measure estimate $\hat{\Lambda}(s_{i+1})$ from \Qopt, and add $((s_i, a_i), \hat{\Lambda}(s_{i+1}))$ to the dataset of \LQhat.
+		\end{enumerate}
+	\end{itemize}
+	This algorithm has been able to correctly learn the viable sets of the examples of~\cite{heim2020learnable}.

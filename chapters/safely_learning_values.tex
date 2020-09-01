@@ -1,15 +1,327 @@
 \chapter{Safely learning values: a benchmark} \label{chap:benchmark}
+In this chapter, we derive and benchmark algorithms to learn safe, optimal policies based on the previous theoretical tools. The goal of this benchmark is to test how successful the algorithms are at maximizing the reward while also quickly learning how to avoid failure. We first present the benchmarked algorithms and the set-up in Section~\ref{sec:set-up} before giving the experimental results in Section~\ref{sec:results}.
 
+\section{Experimental set-up} \label{sec:set-up}
+We first describe the experimental set-up of this benchmark. Two environments were tested: an extension of the hovership environment presented in Section~\ref{sec:hovership} with a continuous state-action space~\cite{heim2020learnable}, and the spring-loaded inverted pendulum (SLIP) model~\cite{heim2019beyond}. We test the four algorithms presented below on each of these environments. Their performances are evaluated on several metrics like the failure rate of the learned policy, the total reward it collects before the environment terminates, or the discrepancy between the true viable set and its estimate (when applicable).
 
-\section{Enforcing sharp constraints on policies}
-
-\section{Experimental setup}
 \subsection{Environments}
-\subsection{Algorithms}
-\subsection{Metrics}
-\subsection{Sample selection}
+The proposed methods are tested on different systems, whose dynamics, termination conditions, and rewards are described below. In each case, solving the dynamics involved solving one or many differential equations. This is done with scipy's \verb|scipy.integrate.solve_ivp| function. The values of the parameters of the dynamics were taken from the code of~\textcite{heim2020learnable}, where the same environments are used for numerical examples. Each of these environments illustrates a different challenge: dealing with large unviable states, and complex dynamics where failing can happen at every step.
 
-\section{Results}
+\subsubsection{Hovership}
+One of the two testbeds for this benchmark is the hovership environment. Its main advantage is that it can be parameterized to have a large unviable set.
+
+\paragraph{State-action space and dynamics} The example based on the hovership spaceship from Section~\ref{sec:hovership} is modified with a continuous state-action space. The state $s$ is now the altitude of the spaceship, and is a continuous variable in time. It satisfies the following differential equation:
+\begin{equation}
+	\dot{s} =- g - 0.75\cdot\tanh\left(s_\text{max} - s\right)\cdot\nabla g + a, \label{eq:hovership dynamics}
+\end{equation}
+where $g=0.1$, $\nabla g = 1$, and $s_\text{max} = 1$ are parameters, and $a$ is the action. The state is constrained to stay in $[0, s_\text{max}]$. In order to make the dynamics time-discrete, the agent is only allowed to change its action on regularly spaced time steps: the\emph{ control frequency} $f = 1$ \hertz~of the agent is another parameter. Hence, the action $a$ in the dynamics~\eqref{eq:hovership dynamics} is piecewise constant.
+
+\paragraph{Environment termination} The failure set is $\SF = \{0\}$: this corresponds to the ship crashing on the ground. There are two different ways that the environment terminates: either the agent fails, or it manages to take 10 consecutive steps without failing. The dynamics~\eqref{eq:hovership dynamics} and the parameters were chosen so that a large portion of the state action space is unviable, as it can be seen on Figure~\ref{fig:state action spaces:hovership}.
+
+\paragraph{Reward} The reward is an affine function of the state. It decreases from $10$ for $s=0$ (the lowest altitude) to $0$ for $s=s_\text{max}$ (the highest altitude). The optimal policy is then to go as low as possible, with the maximum possible thrust: this corresponds to reaching the lower-right region of the viable set.
+
+\begin{figure}
+	\centering
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state_action_spaces/hovership}
+		\caption{Hovership}
+		\label{fig:state action spaces:hovership}
+	\end{subfigure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{state_action_spaces/slip}
+		\caption{SLIP}
+		\label{fig:state action spaces:slip}
+	\end{subfigure}
+	\caption{The state-action spaces of the two environments. On each figure, the viable set \QV~is in green, unviable state-actions are in yellow, and failing state-actions are in orange. A safe agent only picks actions in the green area.}
+\end{figure}
+
+\subsubsection{Spring-loaded inverted pendulum} 
+The spring-loaded inverted pendulum (SLIP) is a model commonly used to describe walking~\cite{heim2019beyond}. It has hybrid and highly non-linear dynamics, and the complex shape of its viable set make it a challenging task for control.
+
+\paragraph{State-action space and dynamics} The SLIP model is composed of a spring loaded with a mass. The dynamics can be decomposed in three phases: the flight phase, the stance phase, and another flight phase. The summary of the phases can be found on Figure~\ref{fig:slip motion phases}. We use the approach from~\cite{heim2019beyond} to describe this system using a $1$-dimensional state $s\in[0,1]$, representing the normalized altitude of the mass at the flight apex. The control consists in changing the angle of attack of the spring leg and is applied at each flight apex, so one time per cycle. The dynamics are then treated as a discrete-time, nonlinear, and deterministic map with a two dimensional state-action space.
+
+\paragraph{Environment termination} Failure is defined as the mass hitting the ground, or changing direction during the stance phase: it is evaluated on the full state space of the continuous dynamics. The environments can then terminate in two different ways: either the agent fails, or it manages to take $10$ consecutive steps without failing. The state-action space and the viable set of the SLIP model can be seen on Figure~\ref{fig:state action spaces:slip}. Note that the shape of the SLIP's viable set make it a much more challenging task for control than the hovership, as failing is possible from every state.
+
+\paragraph{Reward} The reward is here again an affine function of the state, and is maximal when the state is lowest. The dynamics in the lower region of the viable set map back to the upper part of the state space. Depending on the discount factor, the optimal policy is then a trade off between going low (immediate reward) and staying at a low altitude on average (long term reward).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\textwidth]{slip}
+	\caption{A qualitative trajectory of the SLIP model. The control input $\alpha$ is chosen at the first flight apex. The foot lands, pivots around its contact point, and the system springs again. At the next flight apex, a new angle of attack $\alpha$ can be chosen and a new cycle begins. \figfrom{\cite{heim2019beyond}}.}
+	\label{fig:slip motion phases}
+\end{figure}
+
+\begin{remark}
+	Terminating environments after a certain number of steps is taken is a common practice in RL. However, it can be argued that it breaks the Markov assumption. This is a very legitimate concern, and is a topic of study in the RL community~\cite{pardo2018time}. However, the state-action spaces involved here are sufficiently small so the agent has the time to either reach one of its limit cycles or to fail within the alloted time. Moreover, agents are initialized randomly on the viability kernel: this randomization ensures that no part of the state space is insufficiently explored due to time constraints.
+\end{remark}
+
+\subsection{Algorithms}~\label{sec:algorithms}
+We implement four different learning strategies to find safe policies. Three of them build up on the work of~\textcite{heim2020learnable} and use the safety measure presented in Section~\ref{sec:safety measure} to estimate the viable set \QV~to favor safe exploration. The main difference between these algorithms is how they select new samples and when they update their estimate of the viable set. These algorithms are compared with Q-Learning with and without penalization. A summary of all the algorithms and their parameterization is available on Table~\ref{tab:algorithms}. The different functions that need to be learned are approximated with Gaussian Processes (GPs)~\cite{williams2006gaussian}.
+
+\begin{table}
+	\centering
+	\begin{tabular}{l|cccc}
+		 & \QV~estimate & Parameters & Sampling & \LQhat~update\\
+		 \thickhline
+		Safety-Q switch & Yes
+								 & \multiline{$\gamma_\text{opt}, \gamma_\text{caut}$,\\
+												 	 $\lambda_\text{caut}, t_\text{switch}$} 
+								 & \multiline{From~\cite{heim2020learnable},\\then\\constrained\\Q-Learning}
+								 & \multiline{$t\leq\tswitch$:\\Every step\\$t > \tswitch$:\\On failure}\\
+		\hline
+		Safety Q-Learning & Yes
+									& \multiline{$\gamma_\text{opt}, \gamma_\text{caut}$,\\
+										$\lambda_\text{caut}$}
+									& \multiline{Constrained\\Q-Learning}
+									& Every step\\
+		\hline
+		Soft Safety Q-Learning & Yes 
+										   & \multiline{$\gamma_\text{opt}, \gamma_\text{caut}$,\\
+										   	$\lambda_\text{caut},\gamma_\text{soft}$} 
+										   & \multiline{Constrained\\Q-Learning}
+										   & \multiline{$a\notin\Qsoft$\\On failure}\\
+		\hline
+		Penalized Q-Learning & No & $p$ & Q-Learning & None\\
+		\thickhline
+		
+	\end{tabular}
+\caption{The four algorithms and their main parameters and behaviour. All algorithms also have parameters to configure the underlying Q-Learning: probability of not acting greedily $\varepsilon$, step size, discount rate. The \enquote{Constrained Q-Learning} update means that the chosen action in $s$ is $\argmax_{a, (s,a)\in\Qcaut}Q(s, a)$ with probability $1 - \varepsilon$, or another random action $a$ such that $(s, a)\in\Qcaut$ otherwise. The \enquote{Q-Learning} one means the same thing without the state-actions being in \Qcaut.}
+\label{tab:algorithms}
+\end{table}
+
+\subsubsection{Safety-Q switch}
+This first algorithm is the naive method building up on the algorithm of~\textcite{heim2020learnable} presented in Section~\ref{sec:safety measure}. The idea of \enquote{Safety-Q switch} is to first run this viable set estimation algorithm, and then run a constrained Q-Learning algorithm that only allows the agent to pick actions inside the cautious estimate of the viable set~\Qcaut. Deciding when to switch to Q-Learning is key: it can either be done by evaluating the convergence of the algorithm from~\cite{heim2020learnable}, or after a certain number of iterations. We chose the second method\footnote{Evaluating a convergence criterion for the first algorithm is computationally expensive, since it requires evaluating a GP on the whole state-action space.}: we call this number of iterations the \emph{ switch time}, and note it $t_\text{switch}$.% The algorithm is summarized in Algorithm~\ref{alg:safety q switch}.
+\paragraph{Theoretical guarantees} The Safety-Q switch algorithm enjoys very strong theoretical guarantees, as long as its estimate of \QV~is correct. Assume that the algorithm from~\cite{heim2020learnable} has found \Qcaut~such that $\QV = \Qcaut$. Then, any policy output by the Safety-Q switch algorithm for $t \geq \tswitch$ is safe: this is a simple consequence of Corollary~\ref{clry:safe policies on qc}. Since the viability kernel is positively invariant under safe policies, the agent never goes out of \QV~ever again. Hence, the agent is simply doing Q-Learning on a stable subset of the state-action space, and so it is guaranteed to asymptotically find the optimal policy as soon as the convergence assumptions of Q-Learning are met~\cite{sutton2018reinforcement}.
+
+\subsubsection{Safety Q-Learning}
+The previous algorithm explores large portions of the state-action space that may not be useful for the reward-maximization task. The idea of Safety Q-Learning is to\emph{ guide} the exploration with this reward-maximization task while\emph{ constraining} it to state-actions that are thought to be viable. Compared to Safety-Q switch, the Safety Q-Learning algorithm does not have a phase during which it explores for the viable set. Instead, it directly follows the Q-Learning update, and keeps updating the safety measure along the way. By doing so, we hope that the safety measure will primarily expand in regions that are deemed interesting by Q-Learning. Of course, the samples are now going to be less informative for the safety measure\footnote{The algorithm in~\cite{heim2020learnable} uses an active sampling criterion to maximize the information gain}. Hence, we expect this algorithm to be better at quickly accumulating reward, while having a slower and less accurate estimation of the viable set, especially in regions that are not interesting for reward maximization.% The algorithm is summarized in Algorithm~\ref{alg:safety q learning}.
+\paragraph{Learning what the agent needs to know}The Safety Q-Learning algorithm enjoys the same strong theoretical guarantees as Safety-Q switch if it manages to correctly learn the viable set~\QV. However, this is not the point of this algorithm. We do not expect it to correctly learn \QV~in general, but only to do it in specific regions. Of course, this means that the resulting policy will fail when facing unknown or uncommon situations, but the goal here is to provide a principled way of balancing safety and reward so the agent learns what it\emph{ needs} to learn, instead of learning everything.
+
+\subsubsection{Soft Safety Q-Learning}
+By following the Q-Learning update instead of actively sampling \LQhat, the Safety Q-Learning algorithm generates a lot of samples that are uninformative for the safety measure. Indeed, the agent may find itself repeatedly taking actions that have been known to be safe for a long time. In practice, this can give rise to problems by creating an unbalanced dataset\footnote{This can become a problem for example when the safety measure is approximated with a neural network instead of a GP} or, in the case of GPs, by flooding the GP's dataset with useless points\footnote{The time complexity of making a prediction with a GP increases polynomially with the number of samples~\cite{williams2006gaussian}.}. A way out of this problem is to introduce\emph{ sample selection}. \par
+When are samples informative? Consider that we have evaluated the safety measure at $(s, a)\in\Qcaut$. Recall that we can compute from the output of the GP the probability that the measure at $(s, a)$ is positive. If this probability is high, the GP is confident that the considered state-action is viable. If it is lower, it does not mean that the GP considers this point to be unviable (since it is in \Qcaut !), but rather that this state-action\emph{ should} be viable, but the confidence is low. Hence, refining the estimate of \LQhat~here would be useful. Consequently, we define a subset \Qsoft~of \Qcaut~which contains state-actions where the safety measure is above $\lambda_\text{caut}$ with probability at least $\gamma_\text{caut}$, but\emph{ at most} $\gamma_\text{soft}$, where $\gamma_\text{soft}\in[\gamma_\text{caut}, 1]$ is a new parameter. In practice, this corresponds to defining a third probabilistic level set, in addition to \Qcaut~and \Qopt. Then, the agent updates the safety measure with a new sample only if it was collected outside of \Qsoft.% The complete algorithm can be found on Algorithm~\ref{alg:soft safety q learning}.
+
+\subsubsection{Standard Q-Learning}
+We also implement standard Q-Learning, and test it on the penalized and on the unpenalized environments. The unpenalized Q-Learning is not expected to be particularly good, and is just evaluated here as a baseline. However, it is reasonable to expect that Q-Learning on the penalized environment actually learns a safe policy, from Theorem~\ref{thm:strong duality}: Gaussian processes should not suffer from the problems emphasized in Section~\ref{sec:parameterization} since they can, in principle, approximate any function provided that enough data is available. Of course, the required amount of data largely depends on the regularity of the approximated function, and on the hyperparameters of the GP (the kernel, for example). Here, the regularity of the value function largely depends on the value of the penalty: higher penalties mean sharper local variations. Hence, depending on the value of the penalty, the penalized Q-Learning algorithm may be able to learn the optimal safe policy without suffering too much from numerical issues.
+
+\subsection{Metrics} \label{sec:metrics}
+\paragraph{Choice of the metrics} The original goal is to derive algorithms that learn how to maximize the return while quickly learning how not to fail. Two important metrics are then the total expected return\footnote{We could have chosen the total discounted return instead, which is the return that the agents learn to maximize. This does not really make a difference, since the agents do not have any notion of time.} $G$ and the probability of failing $F$:
+\begin{align}
+	G~&=~\expected_\pi\left[\sum_{t=0}^\Tf R_{t+1}\right],\\
+	F~&=~\P_\pi\left[\exists t, S_t\in\SF\right]\nonumber\\
+		&=~\expected_\pi\left[\sum_{t=0}^\Tf \indicator_\SF(S_{t+1})\right],
+\end{align}
+where $\pi$ is the evaluated policy\footnote{For the second expression of $F$, recall that failure is a terminal state: if the agent fails, only one of the terms in the sum is non-zero.}. For the agents that build an estimate of \QV, we also define the following two metrics:
+\begin{align}
+	K = \frac{\card{\QV\setminus\Qcaut}}{\card{\QV}},\\
+	N = \frac{\card{\Qcaut\setminus\QV}}{\card{\QV}},
+\end{align} 
+where $\card{\cdot}$ is the cardinal of a set. We call $K$ the\emph{ conservativeness} of the agent: it is the proportion of the viable set that the agent considers unsafe. Similarly, the\emph{ negligence} $N$ is the normalized number of unviable state-actions that the agent considers to be safe.
+
+\paragraph{Evaluating the metrics} We evaluate these four metrics regularly during training. To evaluate the conservativeness and the negligence, we simply brute-force the computation of the set \Qcaut~and compare it with the true viable set, that is computed beforehand using the methods from~\cite{heim2019beyond}. The failure rate and the expected reward are evaluated by Monte Carlo methods. The current policy of the agent is evaluated on a number of\emph{ measurement episodes} that are not used for training\footnote{Hence, the policy does not change when it is evaluated.}. The results are then averaged. The main bottleneck to precise and frequent evaluations is the available computational power: we chose to evaluate the policies every $10$ training episodes, and use $20$ measurement episodes each time. Finally, each agent was trained $10$ times on each environment, and the metrics were once again averaged across trainings. As a consequence, each measurement point is an average over $200$ episodes.
+
+\subsection{Sample forgetting} \label{sec:sample forgetting}
+Gaussian processes get increasingly expensive to evaluate as the size of their dataset grows: the time-complexity of this operation is $\mathcal{O}(n^3)$, where $n$ is the number of samples~\cite{williams2006gaussian}. For this reason, limiting the number of samples quickly becomes a necessity. Doing so, giving priority to new samples makes a lot of sense in our setting: the value with which the dataset is updated depends on the past predictions on the GP. Hence, early values are\emph{ very} sensitive to the initialization. Forgetting them is thus a way of limiting the number of points while decreasing the long-term sensibility to the initial conditions.\par
+The solution we implemented is based on a nearest neighbours approach. As new samples are added, old samples that are closer than a user-defined\emph{ forgetting radius} are forgotten. This general rule suffers two exceptions for the GP modeling the safety measure. First, failures cannot be forgotten, since they are the only data points in which we have full confidence. Second, failures cannot\emph{ cause} other samples to be forgotten. This enables for example to learn sharp shapes for the viable set, as it is the case for the SLIP model (see Figure~\ref{fig:state action spaces:slip}). For both environments, we chose a forgetting radius of $0.05$, since it enabled a satisfactory learning while keeping the duration of each batch of $10$ trainings between $3$ and $7$ hours\footnote{Depending on the environment and on the agent.}.
+
+\section{Results} \label{sec:results}
+All of the previous algorithms were run on both environments with the parameter values presented in Table~\ref{tab:parameters}. The parameters related to the safety measure were tuned from the results of~\textcite{heim2020learnable}. The low value for the discount rate $\gamma$ was chosen to illustrate the effect of unviable state-action pairs on the hovership example, and was kept consistent across all experiments. As in~\cite{heim2020learnable}, the Gaussian processes used kernels of the Matérn family~\cite[Chapter\,18]{williams2006gaussian}, which have three parameters: a scalar amplitude, and one length scale for each input dimension. The length scales describe how far two samples should be so the GP considers their outputs to be independent. The GPs modeling the safety measure and the value function were parameterized identically, and their parameters were tuned by optimizing on the ground truth of the safety measure. The initialization of the estimates of the safety measure and the value function were kept consistent across all agents in a given environment. The values of the metrics were computed by the procedure described in Section~\ref{sec:metrics}
+
+\begin{table}
+	\centering
+	\begin{tabular}{l|cc}
+		Name & Symbol & Value\\
+		\thickhline
+		Exploration parameter & $\varepsilon$ & $0.1$\\
+		Discount rate & $\gamma$ & $0.2$\\
+		Step size & - & $0.6$\\
+		Optimistic confidence & $\gamma_\text{opt}$ & $0.6\to0.8$\\
+		Cautious confidence & $\gamma_\text{caut}$ & $0.7\to0.8$\\
+		Cautious threshold & $\lambda_\text{caut}$ & $0$\\
+		Soft constraint confidence & $\gamma_\text{soft}$ & $0.75\to0.85$\\
+		Switch time & $\tswitch$ & $200$\\
+		Number of episodes & - & $500$\\
+		\thickhline
+	\end{tabular}
+	\caption{Values of the parameters. The first three parameters are the standard parameters of Q-Learning with an $\varepsilon$-greedy exploration policy. The confidence parameters are linearly increased during training. For the Safety-Q switch algorithm, the increase is until time $\tswitch$.}
+	\label{tab:parameters}
+\end{table}
+
 \subsection{Hovership}
-\subsection{S.L.I.P.}
+
+
+\begin{figure}[t]
+	\centering
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/hovership_expected_reward}
+		\caption{Expected reward $G$}
+		\label{fig:results:hovership:expected reward}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/hovership_expected_failure}
+		\caption{Expected failure $F$}
+		\label{fig:results:hovership:expected failure}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/legend_hovership}
+	\end{subfigure}
+	\newline
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/hovership_conservativeness}
+		\caption{Conservativeness $K$}
+		\label{fig:results:hovership:conservativeness}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/hovership_negligence}
+		\caption{Negligence $N$}
+		\label{fig:results:hovership:negligence}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\hfill
+	\end{subfigure}
+	\caption{Training curves of the agents on the hovership environment. The standard deviation is not plotted for clarity and because it does not add any major information. For penalized environments, Figure~\ref{fig:results:hovership:expected reward} corresponds to the reward without the penalty.}
+	\label{fig:results:hovership}
+\end{figure}
+
+The safety measure is initialized conservatively on this environment: the initial estimate of $\Qcaut$ is mainly contained in $\QV$, as it can be seen by the low initial values of the negligence $N$ (Figure~\ref{fig:results:hovership:negligence}). The learning curves of all algorithms are presented on Figure~\ref{fig:results:hovership}, and the learned value maps and safe sets on Figure~\ref{fig:learned sets:hovership}. The general trends that emerge from these results is that all four safety-aware algorithms manage to achieve satisfactory return, but only the ones estimating the viable set learn safe behaviours: this comes from the existence of the unviable set, as we see it now.\par
+The unpenalized Q-Learning algorithm does not learn how to stay safe. The low discount rate $\gamma$ prevents any long-term planning, which leads the agent to maximize the immediate reward and go down as fast as possible, thus failing in a few steps (Figure~\ref{fig:learned sets:hovership:q learning}). As a result, the unpenalized Q-Learning algorithm is very bad at maximizing the total reward. \par
+This changes drastically when adding a high penalty. The high value of the penalty\enquote{ back-propagates} from the failure set and lowers unviable values, while being scaled by $\gamma$ at every step: the agent learns that it should avoid failing, at least in the short term. As a result, the agent learns how to act in a safer way, but still not safely (Figure~\ref{fig:results:hovership:expected failure}). Instead, the agent learns how to\emph{ fail slowly} (Figure~\ref{fig:learned sets:hovership:penalized}): once in the unviable set, it stays there for as long as possible and therefore collect high rewards (since the unviable set has better rewards than the viable one) for as long as possible. This results in an unsafe policy that achieves better total reward in the given time horizon than the optimal safe one. This behaviour should disappear with higher penalties, but we did not have the time to check this.\par
+Safety measure-based algorithms do not suffer from such an issue, and all quickly achieve almost-safe behaviour (Figure~\ref{fig:results:hovership:expected failure}). Safety-Q Switch is the fastest algorithm to learn how to act safely, and quickly achieves almost-zero conservativeness and negligence(Figures~\ref{fig:results:hovership:conservativeness}--\ref{fig:results:hovership:negligence}). The steady non-zero value of the conservativeness is understood as a consequence of the forgetting radius discussed in Section~\ref{sec:sample forgetting}: the agent is unable to find the correct border between the viable and the unviable sets. Safety-Q Switch methodically explores the whole viable set during its exploration phase (Figure~\ref{fig:learned sets:hovership:switch}), and therefore acts suboptimally from the reward-maximization perspective during early steps. This changes when it switches behaviour at $t=\tswitch$: then, the algorithm starts exploiting all the knowledge it has collected about the reward function during the first phase, and instantaneously catches up with reward-driven algorithms.\par
+The Safety Q-Learning and Soft Safety Q-Learning algorithms are therefore better at accumulating reward in early steps, but their advantage disappears after $\tswitch$. They also achieve good performance on avoiding failure, even though they fail about an order of magnitude more often at the end of the training than Safety-Q Switch. Their higher conservativeness (Figure~\ref{fig:results:hovership:conservativeness}) is partly explained by the fact that they less thoroughly explore the top-right region of the viable set, since it is not interesting for the return (Figures~\ref{fig:learned sets:hovership:safety q learning}--\ref{fig:learned sets:hovership:soft safety q learning}).\par
+
+\begin{figure}
+	\centering
+	\begin{subfigure}{0.29\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{safe_sets/hovership_safety_q_switcher}
+		\caption{Safety-Q switch}
+		\label{fig:learned sets:hovership:switch}
+	\end{subfigure}	
+	\begin{subfigure}{0.29\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{safe_sets/hovership_safety_q_learning}
+		\caption{Safety Q-Learning}
+		\label{fig:learned sets:hovership:safety q learning}
+	\end{subfigure}	
+	\begin{subfigure}{0.29\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{safe_sets/hovership_soft_safety_q_learning}
+		\caption{Soft Safety Q-Learning}
+		\label{fig:learned sets:hovership:soft safety q learning}
+	\end{subfigure}		
+	\begin{subfigure}{0.1\textwidth}
+		\includegraphics[width=0.5\textwidth]{safe_sets/hovership_colorbar}	
+		\vspace{0.8cm}
+	\end{subfigure}\newline
+	\begin{subfigure}{0.39\textwidth}
+		\includegraphics[width=\textwidth]{safe_sets/hovership_unpenalized}
+		\caption{Q-Learning}
+		\label{fig:learned sets:hovership:q learning}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\captionsetup{width=1.1\textwidth}
+		\includegraphics[width=\textwidth]{safe_sets/hovership_penalized}
+		\caption{Penalized Q-Learning ($p=10000$)}
+		\label{fig:learned sets:hovership:penalized}
+	\end{subfigure}
+	\caption{The learned value maps and \Qcaut~set. The coloured dots are the state-actions visited during training. Blue samples are used by both GPs, whereas the red ones are only used by the GP modeling the value function. On Figures~\ref{fig:learned sets:hovership:switch}--\ref{fig:learned sets:hovership:soft safety q learning}, the sets \QV~and \Qcaut~are the solid black lines.}
+	\label{fig:learned sets:hovership}
+\end{figure}
+\subsection{Spring-loaded inverted pendulum}
+
+\begin{figure}[t]
+	\centering
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/slip_expected_reward}
+		\caption{Expected reward $G$}
+		\label{fig:results:slip:expected reward}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/slip_expected_failure}
+		\caption{Expected failure $F$}
+		\label{fig:results:slip:expected failure}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/legend_slip}
+	\end{subfigure}
+	\newline
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/slip_conservativeness}
+		\caption{Conservativeness $K$}
+		\label{fig:results:slip:conservativeness}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{metrics/slip_negligence}
+		\caption{Negligence $N$}
+		\label{fig:results:slip:negligence}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\hfill
+	\end{subfigure}
+	\caption{Training curves of the agents on the SLIP environment. The standard deviation is not plotted for clarity and because it does not add any major information. For penalized environments, Figure~\ref{fig:results:slip:expected reward} corresponds to the reward without the penalty.}
+	\label{fig:results:slip}
+\end{figure}
+
+The safety measure is initialized optimistically on this environment, and a lot of unsafe state-actions are considered safe initially: this is shown by the high initial negligence and low initial conservativeness (Figures~\ref{fig:results:slip:conservativeness}--\ref{fig:results:slip:negligence}). The learning curves of all algorithms are presented on Figure~\ref{fig:results:slip}, and the learned value maps and safe sets on Figure~\ref{fig:learned sets:slip}. On this task, the penalized method performs similarly to the ones based on the safety measure on the expected return, and achieves a lower failure rate. 
+\TODO{Interpret the results of the SLIP better.}
+
+The first challenge of the the SLIP environment is that failures can happen at every step. Second, the dynamics in the high-rewarded lower part of \QV~map back to high states. Because of the low value of $\gamma$, the optimal agent should go back and forth between high and low states, and therefore needs accurate models in both regions of the viable set. Contrary to the hovership environment, the safety measure is initialized optimistically here, and lot of unsafe state-actions are considered safe initially.\par
+The performance of all algorithms are presented in Figure~\ref{fig:results:slip}. Here again, the myopic Q-Learning is unable to maximize the long term return. However, much smaller values of the penalty now result in a safe behaviour: since there is no unviable set, the effect of small penalties can be seen even with a low discount factor. Penalized Q-Learning achieves similar performance than the Soft Safety Q-Learning algorithm, both in terms of return and failure rate. On the other hand, the performance between the latter and Safety Q-Learning differ significantly on this environment: Safety Q-Learning achieves better return and a lower failure rate on most of the training. This is very surprising when put in perspective with the conservativeness and negligence (Figures~\ref{fig:results:slip:conservativeness} and~\ref{fig:results:slip:negligence}), as Soft Safety Q-Learning seems to have a better overall estimate of \QV, which can also be seen on Figures~\ref{fig:learned sets:slip:safety q learning} and~\ref{fig:learned sets:slip:soft safety q learning}. We understand this result as Soft Safety Q-Learning being more negligent, which is a problem when doing exploration in an environment where failure can happen from every state.\par
+For both Safety-Q switch and Safety Q-Learner, conservativeness begins to rise again after a while. We interpret this based on two considerations. First, the GP models that we use are typically used to model smooth functions. The SLIP's safety measure does not satisfy such an assumption, especially on the sharp regions at the lower and upper ends of the state space. It can be seen on Figure~\ref{fig:learned sets:slip} that no algorithm manages to correctly classify these regions, whereas they are typically considered safe at the beginning of the training. The second reason is that, due to forgetting, learning these regions becomes even harder since the few samples that encourage exploration there can get forgotten. This is especially true since these regions are narrow, so samples are easily close enough to be forgotten. Since the Soft Safety Q-Learning algorithm tries to actively learn these regions (because they are interesting for the reward maximization task) and only adds samples for the safety measure in a principled way (therefore avoiding unwanted forgetting), this can explain why this algorithm has a significantly less conservative estimate of \QV.\par
+The ordering between the performances of Soft Safety Q-Learning, Safety Q-Learning and Safety-Q switch from the hovership environment is preserved on the SLIP, but the differences are significantly larger. There is an important correlation between how safe an algorithm behaves and how much total return it collects. Safety Q-Learning and its Soft version perform similarly to Safety-Q switch on the reward task before $\tswitch$, but are outperformed after the switch occurs. This is not the behaviour that we expected in Section~\ref{sec:algorithms}. A possible explanation is that these algorithms try to refine their estimate of the viable set in the sharp regions of~\QV~described in the previous paragraph, but this leads to more failures because they cannot properly learn it.
+
+\begin{figure}[t]
+	\centering
+	\captionsetup[subfigure]{width=1.1\textwidth}
+	\begin{subfigure}{0.29\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{safe_sets/slip_safety_q_switcher}
+		\caption{Safety-Q switch}
+		\label{fig:learned sets:slip:switch}
+	\end{subfigure}	
+	\begin{subfigure}{0.29\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{safe_sets/slip_safety_q_learning}
+		\caption{Safety Q-Learning}
+		\label{fig:learned sets:slip:safety q learning}
+	\end{subfigure}	
+	\begin{subfigure}{0.29\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{safe_sets/slip_soft_safety_q_learning}
+		\caption{\mbox{Soft Safety Q-Learning}}
+		\label{fig:learned sets:slip:soft safety q learning}
+	\end{subfigure}	
+	\begin{subfigure}{0.1\textwidth}
+		\includegraphics[width=0.8\textwidth]{safe_sets/slip_colorbar}
+		\vspace{1cm}
+	\end{subfigure}\newline
+	\begin{subfigure}{0.39\textwidth}
+		\includegraphics[width=\textwidth]{safe_sets/slip_unpenalized}
+		\caption{Q-Learning}
+		\label{fig:learned sets:slip:q learning}
+	\end{subfigure}
+	\begin{subfigure}{0.39\textwidth}
+		\includegraphics[width=\textwidth]{safe_sets/slip_penalized}
+		\caption{Penalized Q-Learning ($p=100$)}
+		\label{fig:learned sets:slip:penalized}
+	\end{subfigure}
+	\caption{The learned \Qcaut~set for the three algorithms based on the safety measure on the SLIP environment. Blue samples are used by both GPs, whereas the red ones are only used by the GP modeling the value function. On Figures~\ref{fig:learned sets:slip:switch}--\ref{fig:learned sets:slip:soft safety q learning}, the sets \QV~and \Qcaut~are the solid black lines.}
+	\label{fig:learned sets:slip}
+\end{figure}
 \subsection{Discussion}
+In the last sections, we have presented and benchmarked four algorithms to learn safe policies, three of them being based on building an estimate of the viable set \QV~to put a constraint on the actions available to the exploration strategy.\par
+The method based on first building an estimate of the safe set, and then optimizing for the expected return is the more careful and systematically achieves the lowest failure rate. While building the estimate of the viable set, it also accumulates knowledge on the reward function, and this knowledge can be immediately used when switching behaviours. Therefore, even though this method is suboptimal during early steps, it quickly catches up on reward-focused methods after $\tswitch$. This emphasizes the importance of this switch parameter. If it is too small, the estimate of the viable set is not good enough and the agent will not act safely. If it is too high, the agent will take a long time before taking reward-maximizing actions. Moreover, the systematic exploration of the whole viable set can become a problem in high dimensional systems (where learning the whole set is computationally intractable) or if data collection is costly. \par
+The second and third algorithms get rid of this exploration phase, and immediately try to learn how to maximize the reward by guiding the exploration with constrained Q-Learning updates. This enables them to primarily refine their estimate of the viable set in regions that are interesting from a reward perspective. This works well in cases where the optimal behaviour lies in regions of the viable set that can easily be learned - like in the hovership example - but can become problematic when the reward objective tries to push in regions that are challenging to learn, like the sharp regions of the viable set of the SLIP environment: then, the performance can become a bit erratic. The main advantage of these methods is that they do not have an initial inefficient exploration phase, and should therefore be better suited for high-dimensional systems.\par
+These three methods largely outperform the naive way of learning safe policy - namely, failure penalization - in the presence of an unviable set. The difference was less obvious when failure is immediate, but it still appears that explicitly taking into account safety constraints during training yields safer policies eventually. This safer behaviour comes at a greater computational cost.\par

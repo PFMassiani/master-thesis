@@ -23,12 +23,22 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor}
+\usepackage{ctable}
 \usepackage{csquotes}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{dsfont}
 \usepackage{mathtools}
+\usepackage[squaren]{SIunits}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode} % pseudocode
+\algtext*{EndWhile} % Remove "end while" text
+\algtext*{EndIf} % Remove "end if" text
+\algtext*{EndFor} % Remove "end if" text
+\algtext*{EndProcedure}
+\usepackage{tablefootnote}
 
 \graphicspath{ {images/} }
 \pagestyle{fancy}
@@ -60,7 +70,6 @@
 	\input{chapters/viability_based_safety}
 	\input{chapters/safely_learning_values}
 	\input{chapters/future_work}
-	\input{chapters/conclusion}
 	
 	\appendix
 	\input{chapters/strong_duality_proof}
