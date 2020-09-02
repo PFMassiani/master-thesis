@@ -45,7 +45,7 @@ Another useful lemma is the following, which largely relies on the assumption th
 	\label{lemma:safe policy}
 \end{lemma}
 \begin{proof}
-	This is an immediate consequence of Corollary~\ref{clry:safe policies on qc}. Indeed, let us construct a safe policy. For any state $s\in\SV$, pick an action $a_s\in\A$ such that $(s, a_s)\in\QV$. For any state $s\in\SU$, pick any action $a_s\in\A$. Now, consider the policy:
+	This is an immediate consequence of Corollary~\ref{clry:safe policies on qc}. Indeed, let us construct a safe policy. For any state $s\in\SV$, pick an action $a_s\in\A$ such that $(s, a_s)\in\QV$: such an action exists, because $s$ is viable. For any state $s\in\SU$, pick any action $a_s\in\A$. Now, consider the policy:
 	$$
 		\pi(a|s) = \indicator_{\{a_s\}}(a).
 	$$
@@ -83,7 +83,7 @@ We are now ready to prove Theorem~\ref{thm:strong duality}.
 \begin{proof}
 	First of all, it directly follows from Lemma~\ref{lemma:value bound outside sv} that Equation~\eqref{eq:strong duality su} holds. So we only have to prove Equation~\eqref{eq:strong duality sv}. Note that, from weak duality (Lemma~\ref{lemma:weak duality}), we already have $\forall p\in\mathbb{R},~\forall s\in\SV, V_p(s) \geq V^c(s)$. We will show that:
 	\begin{equation}
-	\exists p^*\in\mathbb{R},~\forall p \geq p^*,~\forall s\in\SV,~V^p(s) \leq V^c(s).
+	\exists p^*\in\mathbb{R},~\forall p \geq p^*,~\forall s\in\SV,~V_p(s) \leq V^c(s).
 	\label{eq:thm:strongduality:proof:converseinequality}
 	\end{equation}
 	To do so, we will show that, for high enough penalties, there exists a policy that achieves the optimal penalized value~\eqref{eq:penalized value} and that is also safe - thus suboptimal for the constrained value~\eqref{eq:constrained state value}. The result will follow immediately.\par

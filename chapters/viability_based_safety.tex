@@ -1,5 +1,5 @@
 \chapter{A viability-based characterization of safety} \label{chap:safety from viability}
-This chapter establishes the key results of this work on safety and develops intuition on how it should or should not be enforced in practice. Safety is defined as in Section~\ref{sec:setting}, while Section~\ref{sec:safe policies stabilize sv} provides an equivalent practical characterization based on viability. Section~\ref{sec:strong duality} establishes theoretical guarantees of reward-shaping methods. Finally, Section~\ref{sec:parameterization} provides a counterexample to discuss how policy parameterization impairs safety guarantees, even though this may not be visible on the total return function.
+This chapter defines the problem of learning policies achieving a $0$ risk and demonstrates the main contribution of this thesis: safe, optimal policies can be learned by penalizing failures, and this with an unbounded interval of possible values for the penalty. To prove this result, we first provide a characterization of safe policies as the ones that give a $0$ probability of leaving the\emph{ viability kernel}. This property is the fundamental reason that enables us to treat the CMDP we consider as a classical MDP on a subset of the state-action space. We then state our main result, and discuss in Section~\ref{sec:parameterization} how parameterizing policies breaks the safety guarantees that the solution to the penalized problem has.
 
 \section{Problem setting} \label{sec:setting}
 We consider a deterministic Markov decision process $(\S, \A, f, R)$ with unknown dynamics and a finite state-action space $\Q = \S\times\A$. The trajectories and the return are defined as:
@@ -10,7 +10,7 @@ We consider a deterministic Markov decision process $(\S, \A, f, R)$ with unknow
 \end{align}
 where $\gamma < 1$ if $\Tf = \infty$.\par
 We are given a failure set $\SF\subset\S$ composed of states that the agent should not explore. The failure set is assumed to be absorbing\footnote{This assumption is not critical to the results presented here, but it eases their formulation.}: the agent needs to be reset after visiting \SF.\par
-The combination of the failure set and the dynamics naturally give rise to the viability kernel \SV~,the viable set \QV~and the critical set \QC~of the system. We assume that \SV~and \QV~are not empty: if they are, any policy reaches the failure set in finite time, and so there are no safe policies. In order for safe policies to exist, we also assume that $\support(\mu) \subset \SV$: we explain why in Section~\ref{sec:safe policies characterization}.\par
+The combination of the failure set and the dynamics naturally give rise to the viability kernel \SV~,the viable set \QV~and the critical set \QC~of the system. We assume that \SV~and \QV~are not empty: if they are, any policy reaches the failure set in finite time, and so there are no safe policies. In order for safe policies to exist, we also assume that $\support(\mu) \subset \SV$, where $\mu$ is the initial state distribution: we explain why in Section~\ref{sec:safe policies characterization}.\par
 We can now define safe policies as in~\cite{heim2020learnable}:
 \begin{definition}[Safe policy]
 	A policy $\pi \in \Pi$ is\emph{ safe} if:
@@ -18,7 +18,7 @@ We can now define safe policies as in~\cite{heim2020learnable}:
 		\P_\pi\left[\bigcup_{t=0}^\Tf\{S_t\in\SF\}\right] = 0. \label{eq:safety def}
 	\end{equation}
 \end{definition}
-This definition of safety belongs to the broad class of\emph{ chance constraints}, which is a standard way of defining safety in RL~\cite{geibel2005risk}~\cite{paternain2019safe}. In our case, this chance constraint is sharp: we do not allow any probability of visiting the failure set. This is quite restrictive, and the existence of policies satisfying it is not straightforward.\par
+This definition of safety belongs to the broad class of\emph{ chance constraints}, which is a standard way of defining safety in RL~\cite{geibel2005risk}~\cite{paternain2019safe}. In our case, this chance constraint is sharp, in the sense that it does not allow any probability of visiting the failure set. This is quite restrictive, and the existence of policies satisfying it is not straightforward.\par
 The safe learning problem can now be stated as finding a safe policy that maximizes the expected return:
 \begin{equation}
 	\begin{aligned}
@@ -35,17 +35,19 @@ This optimization problem can be reformulated as a CMDP with a cost constraint. 
 \end{lemma}
 The quantity $\rho_\pi(\mu)$ is called the\emph{ discounted risk} of the policy~\cite{geibel2005risk}. It mainly depends on the dynamics and the initial state distribution $\mu$. In the following, we will only write it $\rho_\pi$ and drop the explicit dependency in $\mu$.
 \begin{proof}
-	For any policy $\pi$, $\pi$ is safe if, and only if, for all $t,~\P_\pi(S_t\in\SF) = 0$. We already have $\P_\pi(S_0\in\SF) = 0$, since $\support(\mu)\subset\SV$. Moreover, for $t>0$, we clearly have $\P_\pi(\indicator_\SF(S_t) = 1) = \P_\pi(S_t\in\SF)$. Finally, $\indicator_\SF(S_t)$ is a Bernoulli variable, and so $\P_\pi(\indicator_\SF(S_t) = 1) = \expected_\pi\left[\indicator_\SF(S_t)\right]$. Consequently, $\pi$ is safe if, and only if, for all $t>0,~\expected_\pi\left[\indicator_\SF(S_t)\right] = 0$. The result follows immediately.
+	It is clear that a policy $\pi$ is safe if, and only if, for all $t, \P_\pi(S_t \in\SF) = 0$. Moreover, it is also clear that for all $t$, we have: $$ \P_\pi(S_t\in\SF) = \P_\pi(\indicator_\SF(S_t) = 1) =  \expected_\pi\left[\indicator_\SF(S_t)\right],$$ where the last equality holds because $\indicator_\SF(S_t)$ is a Bernoulli variable.\par
+	Assume $\pi$ is safe. By the aforementioned properties, we have that:$$\forall t, \expected_\pi\left[\indicator_\SF(S_t)\right] = 0.$$ Summing all of these equalities for $t\geq1$ and multiplying them by $\gamma^t$ shows that $\rho_\pi = 0$.\par
+	Conversely, assume that $\rho_\pi = 0$. Since all the variables in the definition of $\rho_\pi$ are nonnegative, it holds that $\forall t \geq 1, \expected_\pi\left[\indicator_\SF(S_t)\right] = 0$. This entails that for all $t\geq 1,  \P_\pi(S_t \in\SF) = 0$. This property also holds for $t=0$, since $\support(\mu)\subset\SF$. Therefore, $\pi$ is safe.
 \end{proof}
 So, problem~\eqref{eq:chance constrained problem} can be reformulated as:
 \begin{align}
 		\underset{\pi\in\Pi}{\text{maximize}} & \quad\expected_\pi\left(G_t\right), \label{eq:cost constrained problem objective}\\
 		\text{s.t.} & \quad \rho_\pi = 0. \label{eq:cost constrained problem constraint}
 \end{align}
-\paragraph{Guarantees during training} In this work, we do not focus on solving problem~\eqref{eq:cost constrained problem objective}--\eqref{eq:cost constrained problem constraint} while guaranteeing that constraint~\eqref{eq:cost constrained problem constraint} is satisfied during training, which is hopeless in the model-free setting. Instead, we provide a practical characterization of safety and use it to show that penalized methods find asymptotically safe optimal policies. In Chapter~\ref{chap:benchmark}, the algorithms we propose still do not ensure constraints satisfaction at every step, but learn the constraint~\eqref{eq:cost constrained problem constraint} in a sample-efficient manner.
+\paragraph{Guarantees during training} In this work, we do not focus on solving problem~\eqref{eq:cost constrained problem objective}--\eqref{eq:cost constrained problem constraint} while guaranteeing that constraint~\eqref{eq:cost constrained problem constraint} is satisfied during training, which is hopeless in the model-free setting. Instead, we provide a practical characterization of safety and use it to show that penalized methods asymptotically find safe optimal policies. In Chapter~\ref{chap:benchmark}, the algorithms we propose learn the constraint~\eqref{eq:cost constrained problem constraint} in a sample-efficient manner.
 
 \section{Safe policies stabilize the viability kernel} \label{sec:safe policies stabilize sv}
-Because our definition of safety puts a sharp constraint on policies - no probability mass is allowed on failing -, safe policies are the ones that stabilize the viability kernel, as explained in this section. This result of viability theory has an interesting consequence in RL: it provides a simple characterization of safe policies.
+Because our definition of safety puts a sharp constraint on policies - no probability mass is allowed on failing, safe policies are the ones that stabilize the viability kernel, as explained in this section. This result of viability theory has an interesting consequence in RL: it provides a simple characterization of safe policies.
 
 \subsection{Reach of a policy}
 We define here the reach of a policy:
@@ -55,11 +57,11 @@ We define here the reach of a policy:
 		\reach_\pi(\mu) = \left\{s\in\S~\middle|~\P_\pi(\exists t, S_t = s) > 0\right\}. \label{eq:reach}
 	\end{equation}
 \end{definition}
-The reach of a policy is the set of states that are reached with a nonzero probability by following this policy. An illustration of this object is given in Figure~\ref{fig:reach example}. Like the risk $\rho_\pi$, the reach largely depends on the initial state distribution\footnote{In the following, we will not explicitly write this dependency and will use the notation $\reach_\pi$.}. The reach as we define it is different from the standard notion of\emph{ forward reachable set}~\cite{bansal2017hamilton}, which is the set of states that can be reached with a well-chosen control input. As a matter of fact, the reach of a policy is a subset of the forward reachable set of the support of the initial state distribution. Note that, from the first definition of safety, a policy $\pi$ is safe if and only if $\reach_\pi(\mu) \cap\SF = \emptyset$.
+The reach of a policy is the set of states that are reached with a nonzero probability by following this policy. An illustration of this object is given in Figure~\ref{fig:reach example}. Like the risk $\rho_\pi$, the reach largely depends on the initial state distribution\footnote{In the following, we will not explicitly write this dependency and will use the notation $\reach_\pi$.}. The reach as we define it is different from the standard notion of\emph{ forward reachable set}~\cite{bansal2017hamilton}, which is the set of states that can be reached with a well-chosen control input. As a matter of fact, the reach of a policy is a subset of the forward reachable set of the support of the initial state distribution. Note that, from the first definition of safety, a policy $\pi$ is safe if and only if $\reach_\pi \cap\SF = \emptyset$.
 \begin{figure}
 	\centering
 	\includegraphics[width=0.6\textwidth]{reach}
-	\caption{The reaches of two policies on the hovership example. The policy $\pi_1$ always applies one thruster, and its agent is initialized in $s=1$ or $s=3$ with equal probability. The policy $\pi_2$ applies one or two thrusters with equal probability, and its agent is always initialized in $s=2$. The reach is shown in light blue. Note that $\pi_2$ is safe, since $\reach_{\pi_2} \subset\SV$, whereas $\pi_1$ is not.}
+	\caption[Reach of a policy]{The reach of two policies on the hovership example. The policy $\pi_1$ always applies one thruster, and the agent is initialized in $s=1$ or $s=3$ with equal probability. The policy $\pi_2$ applies one or two thrusters with equal probability, and the agent is always initialized in $s=2$. The reach is shown in light blue. Note that $\pi_2$ is safe, since $\reach_{\pi_2} \subset\SV$, whereas $\pi_1$ is not.}
 	\label{fig:reach example}
 \end{figure}
 \subsection{Safe policies characterization} \label{sec:safe policies characterization}
@@ -72,7 +74,9 @@ This enables us to state the following theorem:
 	\label{thm:safe policies stabilize sv}
 \end{theorem}
 \begin{proof}
-	This theorem is a direct consequence of the definition of the viability kernel as the largest controllable invariant set $K \subset\S$ such that $K \,\cap\,\SF=\emptyset$~\cite[Definition\,4.1.1]{aubin2011viability}. Indeed, the reach is clearly invariant under the policy $\pi$. Moreover, we have already pointed out that a policy $\pi$ is safe if, and only if, $\reach_\pi\cap\SF = \emptyset$: this is a direct consequence of the definition of a safe policy. So, $\reach_\pi$ is a controllable invariant subset of $\S\setminus\SF$ if, and only if, $\pi$ is safe: since the viability kernel is the largest of such sets, the result follows immediately.
+	This theorem is a direct consequence of the definition of the viability kernel as the largest controllable invariant set $K \subset\S$ such that $K \,\cap\,\SF=\emptyset$~\cite[Definition\,4.1.1]{aubin2011viability}.\par
+	Assume $\pi$ is safe. Then, it holds that $\reach_\pi~\cap~\SF~=~\emptyset$. Moreover, $\reach_\pi$ is invariant under the policy $\pi$. Indeed, let $s\in\reach_\pi$ and $a\in\A$ such that $\pi(a|s) > 0$: the action $a$ is a possible action in state $s$ for the policy $\pi$. We show that $s' = f(s, a)\in\reach_\pi$. Since $s\in\reach_\pi$, there exists $t$ such that $\P_\pi(S_t = s) > 0$. By the law of total probability, we also have $\P_\pi(S_{t+1} = s') \geq \P_\pi(S_t = s~\text{and}~A_t = a) = \pi(a|s)\cdot\P_\pi(S_t = s) > 0$. Therefore, $s'\in\reach_\pi$. Consequently, $\reach_\pi$ is a controllable invariant set with an empty intersection with the failure set: by the aforementioned definition of $\SV$, it holds that $\reach_\pi\subset\SV$.\par
+	Conversely, assume that $\reach_\pi\subset\SV$. Then, $\pi$ is trivially safe: any $s\in\SF$ satisfies $s\notin\reach_\pi$, and therefore $\P_\pi(\exists t, S_t = s) = 0$, which concludes the proof.
 \end{proof}
 We can restate this theorem in a more practical way by using the critical set:
 \begin{corollary} \label{clry:safe policies on qc}
@@ -82,25 +86,25 @@ We can restate this theorem in a more practical way by using the critical set:
 	\end{equation}
 \end{corollary}
 \begin{proof}
-	Let $\pi\in\Pi$. Assume $\pi$ is safe, and consider $(s, a)\,\in\, \QC \cap (\reach_\pi\,\times\,\A)$. Since $(s, a) \notin \QV$, then Theorem~\ref{thm:safe policies stabilize sv} ensures that $s' = f(s, a)\notin\reach_\pi$. Now, pick $t$ such that $\P_\pi(S_t = s) > 0$. We have $0 = \P_\pi(S_{t+1} = s') \geq \pi(a|s)\cdot\P_\pi(S_t = s) \geq 0$. This shows $\pi(a|s) = 0$.\par
-	Conversely, assume that $\reach_\pi\not\subset\SV$, and let $s\in\reach_\pi\setminus\SV$. Consider a trajectory $(s_0, a_0, s_1, a_1, \hdots)$ such that:
+	Let $\pi\in\Pi$. Assume $\pi$ is safe, and consider $(s, a)\,\in\, \QC \cap (\reach_\pi\,\times\,\A)$. We show that $\pi(a|s) = 0$. First, since $s\in\reach_\pi$, there exists a time $t$ for which $\P_\pi(S_t = s) > 0$. Moreover, since $(s, a) \notin \QV$, then Theorem~\ref{thm:safe policies stabilize sv} ensures that $s' = f(s, a)\notin\reach_\pi$, since $s'\notin\SV$. Therefore, $\P_\pi(S_{t+1} = s') = 0$. By the law of total probability, we also have $\P_\pi(S_{t+1} = s') \geq \pi(a|s)\cdot\P(S_t = s)$. Combining this with $\P_\pi(S_t = s) > 0$ and $\P_\pi(S_{t+1} = s) = 0$ yields $\pi(a|s) = 0$.\par
+	Conversely, assume that $\reach_\pi\not\subset\SV$, and let $s\in\reach_\pi\setminus\SV$. We find an action $a\in\A$ such that $\pi(a|s) > 0$ and $(s, a) \in \QC$. Consider a trajectory $(s_0, a_0, s_1, a_1, \hdots)$ such that:
 	\begin{itemize}
 		\item there exists a time $t$ such that $s_t = s$;
 		\item for all $u < t, \pi(a_u|s_u) > 0$.
 	\end{itemize}
-	Such a trajectory exists since $s\in\reach_\pi$. Consider the set \mbox{$\mathcal{U} = \{u\in\mathbb{N}~|~s_u\notin\SV\}$}. This set is not empty, so it has a smallest element $u = \min\,\mathcal{U}$. Since $s_0\in\support(\mu)$ and $\support(\mu)\subset\SV$, we have $u \geq 1$. We also have $u\leq t$. Now, we show that $(s_{u-1}, a_{u-1}) \in \QC$. Indeed, $s_u\notin\SV$, by definition of $u$. Yet, $s_{u-1}\in\SV$, still by definition of $u$ and because $u \geq 1$. It follows from the definition of \QC~that $(s_{u-1}, a_{u-1})\in\QC$. Since we also clearly have $(s_{u-1}, a_{u-1})\in\reach_\pi \times \A$, we have found $(s_{u-1}, a_{u-1}) \in \QC\cap(\reach_\pi \times \A)$ such that $\pi(a_{u-1}|s_{u-1}) > 0$. This proves that $\reach_\pi\not\subset\SV$ implies the negation of equation~\eqref{eq:safe policies on qc}, and concludes the proof.
+	Such a trajectory exists since $s\in\reach_\pi$. Consider the set \mbox{$\mathcal{U} = \{u\in\mathbb{N}~|~s_u\notin\SV\}$}. This set is not empty, so it has a smallest element $u = \min\,\mathcal{U}$. Since $s_0\in\support(\mu)$ and $\support(\mu)\subset\SV$, we have $u \geq 1$. We also have $u\leq t$. Now, we show that $(s_{u-1}, a_{u-1}) \in \QC$. Indeed, $s_u\notin\SV$, by definition of $u$. Yet, $s_{u-1}\in\SV$, still by definition of $u$. It follows from the definition of \QC~that $(s_{u-1}, a_{u-1})\in\QC$. Since we also clearly have $(s_{u-1}, a_{u-1})\in\reach_\pi \times \A$, we have found $(s_{u-1}, a_{u-1}) \in \QC\cap(\reach_\pi \times \A)$ such that $\pi(a_{u-1}|s_{u-1}) > 0$. This proves that $\reach_\pi\not\subset\SV$ implies the negation of equation~\eqref{eq:safe policies on qc}, and concludes the proof.
 \end{proof}
 \subsubsection{Discussion}
 \paragraph{Safety does not constrain the policy everywhere} Corollary~\ref{clry:safe policies on qc} shows that safety does not constrain the policy everywhere. Indeed, it makes no statement on how actions should be picked in states that cannot be reached. Of course, the condition of equation~\eqref{eq:safe policies on qc} can still be enforced on the whole critical set \QC, but this is only a sufficient condition for safety.
 
 \paragraph{A classical MDP in a subset of \Q} Policies that satisfy the safety constraint are exactly the ones that effectively prevent the agent from exploring a whole region of the state-action space (namely, $\Q\setminus\QV$). Moreover, any time the agent picks an action in \QV, it ends up in \SV again: the viability kernel is\emph{ positively invariant} under safe policies. Hence, it is possible to see the safety-constrained CMDP~\eqref{eq:chance constrained problem} as a classical MDP with a modified state space $\SV$ and a state-dependent action space $\A(s) = \{a\in\A~|~(s, a)\in\QV\}$. This consideration hints at the fact that most tools specific to MDPs (such as value functions) can actually be used for this CMDP. The main point of Section~\ref{sec:strong duality} is to formalize this intuition.
 
-\paragraph{Safety and initial state distribution} The existence of safe policies is largely conditioned by the initial state distribution $\mu$. Its support must indeed be included in the viability kernel for safe policies to exist, since we always have $\support(\mu) \subset \reach_\pi$. This formalizes the intuition that safety cannot be ensured if the agent is initialized in unviable states. If this condition is not satisfied, then the definition of safety needs to be changed, for example by allowing a non-zero probability of failure.
+\paragraph{Safety and initial state distribution} The existence of safe policies is largely conditioned by the initial state distribution $\mu$. Its support $\support(\mu)$ must indeed be included in the viability kernel for safe policies to exist, since we always have $\support(\mu) \subset \reach_\pi$. This formalizes the intuition that safety cannot be ensured if the agent is initialized in unviable states. If this condition is not satisfied, then the definition of safety needs to be changed, for example by allowing a non-zero probability of failure.
 
-\paragraph{The viability kernel is a natural safe set} Some traditional definitions of safety as a chance constraint either rely on a safe set~\cite{paternain2019safe} or on a set of states from which the agent should avoid failure~\cite{geibel2005risk}. These sets are typically chosen based on system knowledge, and correspond to states from where it is known that a safe behaviour exists. As it can be seen in the examples of~\cite{paternain2019safe} and~\cite{geibel2005risk}, the underlying goal is still to avoid a failure set, whether it is explicitly named or not. Theorem~\ref{thm:safe policies stabilize sv} establishes that, once the failure set is defined, the viability kernel is a natural choice for such a safe set. It emphasizes that - at least in the $0$--risk setting - the only\emph{ true} degree of freedom the engineer has is defining what failure is: the most general safe set the agent should stay in~-~the viability kernel - is then an emerging property of the dynamics. And even though this viability kernel is generally unknown, it can be learned~\cite{heim2020learnable}.
+\paragraph{The viability kernel is a natural safe set} Some traditional definitions of safety as a chance constraint either rely on a safe set~\cite{paternain2019safe} or on a set of states from which the agent should avoid failure~\cite{geibel2005risk}. These sets are typically chosen based on system knowledge, and correspond to states from where it is known that a safe behaviour exists. As it can be seen in the examples of~\cite{paternain2019safe} and~\cite{geibel2005risk}, the underlying goal is still to avoid a failure set, whether it is explicitly named or not. Theorem~\ref{thm:safe policies stabilize sv} establishes that, once the failure set is defined, the viability kernel is a natural choice for such a safe set. The role of the engineer in defining what safety is is therefore minimized: the failure set is generally an intrinsic property of the task or the system, and the definition of safety naturally emerges from the dynamics~\cite{heim2019beyond}. And even if the viability kernel is generally unknown, it can be learned~\cite{heim2020learnable}.
 
 \section{Theoretical guarantees on reward shaping} \label{sec:strong duality}
-A common way of implementing safety constraints in practice is through reward shaping, by incurring penalties when the agent fails. It is known~\cite{altman1999constrained}~\cite{paternain2019safe} that there always exists a value for the penalty so the learned policy is safe and optimal. However, finding this value is highly non-trivial, and often relies on specialized\emph{ primal-dual} algorithms~\cite{chow2017risk}~\cite{paternain2019safe}. We show here that the set of penalties ensuring optimality and safety for the original problem contains an upper-unbounded interval. This result is stronger than what can be found in~\cite{altman1999constrained} or~\cite{paternain2019safe}, and was derived independently.
+The characterization of safe policies given by Corollary~\ref{clry:safe policies on qc} enables us to prove that policies learned through failure penalization are safe and optimal for the constrained problem. It is already known~\cite{altman1999constrained},~\cite{paternain2019safe} that there always exists a value for the penalty so this policy learned policy is safe and optimal. However, finding this value is highly non-trivial, and often relies on specialized\emph{ primal-dual} algorithms~\cite{chow2017risk}~\cite{paternain2019safe}. We show here that the set of penalties ensuring optimality and safety for the original problem contains an upper-unbounded interval. This result is stronger than what can be found in~\cite{altman1999constrained} or~\cite{paternain2019safe}, and was derived independently.
 
 \subsection{The penalized problem}
 Formulating RL algorithms to solve problem~\eqref{eq:cost constrained problem objective}--\eqref{eq:cost constrained problem constraint} is generally hard (see Section~\ref{sec:cmdps preliminaries}). Thus, safety constraints are often enforced in practice by solving the\emph{ penalized problem} instead:
@@ -152,7 +156,7 @@ We are now ready to state the two main results of this section.
 		&\forall s\in\S\setminus\SV,&~&V_p(s)\goesto{p\to\infty}-\infty. \label{eq:strong duality su}
 	\end{alignat}
 \end{theorem}
-The proof of Theorem~\ref{thm:strong duality} can be found in Appendix~\ref{chap:proof strong duality}. We immediately state a corollary of equal importance:
+The proof of Theorem~\ref{thm:strong duality} can be found in Appendix~\ref{chap:proof strong duality}. The following corollary makes explicit one of the main interests of this theorem by stating that solving the penalized problem with any $p > p^*$ gives optimal, safe policies.
 %\begin{corollary} \label{clry:penalized solves constrained}
 %	For all $p\in\mathbb{R}$, let $\pi_p$ be the solution of the penalized problem. There exists a threshold $p^*\in\mathbb{R}$ such that, for all $p > p^*$:
 %	\begin{itemize}
@@ -172,7 +176,7 @@ The proof of Theorem~\ref{thm:strong duality} can be found in Appendix~\ref{chap
 	 \begin{equation}
 	 \forall p > p^*,~\max_{s\in\S\setminus\SV}V_p(s) < \min_{s\in\SV}V^c(s). \label{eq:proof corollary 2 v_p su}
 	 \end{equation}
-	 For all $p\in\mathbb{R}$, let $\pi_p$ be an optimal solution of the penalized problem~\eqref{eq:penalized problem}.  We first show that, for all $p>p^*,~\pi_p$ is safe. From the established theory of MDPs~\cite{sutton2018reinforcement}, we know that $\pi_p$ satisfies the optimal Bellman equation on the states it can reach. Hence, for all $s\in\reach_{\pi_p}$:
+	 For all $p\in\mathbb{R}$, let $\pi_p$ be an optimal solution of the penalized problem~\eqref{eq:penalized problem}.  We first show that, for all $p>p^*$, the policy $\pi_p$ is safe. From the established theory of MDPs~\cite{sutton2018reinforcement}, we know that $\pi_p$ satisfies the optimal Bellman equation on the states it can reach. Hence, for all $s\in\reach_{\pi_p}$:
 	\begin{equation}
 		\pi_p(a|s) > 0~\iff~a \in \argmax_{a'}\,V_p(f(s, a')),\label{eq:proof corollary 2 pi_p}
 	\end{equation}
@@ -194,36 +198,38 @@ The proof of Theorem~\ref{thm:strong duality} can be found in Appendix~\ref{chap
 	Consequently, all of the inequalities are equalities, and so $\pi_p$ achieves the optimal value of the constrained problem. This concludes the proof.
 \end{proof}
 
-\paragraph{Scaling the penalty is easy} This result is stronger than what it generally found in the literature. In~\cite{altman1999constrained} or~\cite{paternain2019safe}, the only guarantee is that there exists a penalty for which the penalized policy is safe and optimal. The fact that\emph{ any} penalty greater than $p^*$ proves that it is unnecessary to use primal-dual algorithms that also optimize on the value of the penalty. However, as Section~\ref{sec:parameterization} emphasizes it, Theorem~\ref{thm:strong duality} only holds when optimizing on the set of\emph{ all} policies in the penalized problem.
+\paragraph{Scaling the penalty is easy} This result is stronger than what is found in the literature. In~\cite{altman1999constrained} or~\cite{paternain2019safe}, the only guarantee is that there exists a penalty for which the penalized policy is safe and optimal. The fact that\emph{ any} penalty greater than $p^*$ proves that it is unnecessary to use primal-dual algorithms that also optimize on the value of the penalty: any high enough value ensures both safety and optimality.
 
-\paragraph{Bounds on the minimal value of $p^*$} \label{sec:gamma p trade off} The theorem does not provide any information on what is the minimal value of $p^*$. It turns out that conservative estimates can be given: for example, it can be shown\footnote{This is just given as an example and is not proven here.} that in the case of a deterministic reward $R$, the quantity: 
+\paragraph{Scaling the penalty is still hard in practice} The assumptions of Theorem~\ref{thm:strong duality} are simple, but critical for its guarantees to hold. These assumptions are the fact that safety means having a $0$ probability of failing, and that the optimization problem is solved on the set of\emph{ all} policies. When allowing for a non-zero risk of failure, there still exists a scaling of the penalty for which the penalized problem~\eqref{eq:penalized problem} has the same optimal value than the constrained problem~\eqref{eq:chance constrained problem}\footnote{For this result to hold rigorously, the objective of the penalized problem needs to be modified by adding $\delta\cdot p$, where $\delta$ is the risk, so it can be interpreted as the dual of the constrained problem.}~\cite{paternain2019safe}. However, it is unclear whether\emph{ any} policy optimal for the penalized problem is safe: the only guarantee is that it achieves the constrained value. Similarly, the guarantees given by Theorem~\ref{thm:strong duality} do not hold when parameterizing the set of policies. Then, there exists in general no finite value of the penalty that ensures that the penalized optimal policy is safe: this is discussed more thoroughly in Section~\ref{sec:parameterization}.
+\paragraph{Bounds on the minimal value of $p^*$} \label{sec:gamma p trade off} The theorem does not provide any information on what is the minimal value of $p^*$. It turns out that upper bounds can be given: for example, it can be shown\footnote{This is just given as an example and is not proven here.} that in the case of a deterministic reward $R$, the quantity: 
 $$
 	\frac{1}{\gamma^{|\S\setminus\SV|}}\max_{(s,a)\in\Q\setminus\QV}R(s, a) + (1 - \gamma)\min_{(s, a)\in\QV}R(s, a),
 $$
-is a value of $p^*$ that satisfies Theorem~\ref{thm:strong duality}. The most remarkable thing about this threshold is that is grows as $\gamma$ gets close to $0$. This makes a lot of sense: as $\gamma$ goes to $0$, the agent is more and more oblivious to long-term rewards. Hence, the penalty needs to be scaled accordingly.
+is a value of $p^*$ that satisfies Theorem~\ref{thm:strong duality}. This threshold grows as $\gamma$ gets close to $0$. This makes a lot of sense: as $\gamma$ goes to $0$, the agent is more and more oblivious to long-term rewards. Hence, the penalty needs to be scaled accordingly.
 
-\paragraph{Influence of the penalty on the learning} Whether or not an agent trained on the penalized reward finds the optimal policy (which is safe, according to Theorem~\ref{thm:strong duality}) largely depends on what learning algorithm is used. In particular, high values of the penalty may break some algorithms by making them numerically unstable, or very sample-inefficient. Since theoretical guarantees hold as long as $p > p^*$, the algorithm's sensitivity to the penalty should be the main drive to choose $p$. According to the numerical proof of concept that we present in the next paragraph, Q-Learning does not seem to be very sensitive to the value of $p$: the number of iterations required to find the optimal policy on the hovership example does not noticeably vary with $p$.
+\paragraph{Influence of the penalty on the learning} Whether or not an agent trained on the penalized reward finds the optimal policy (which is safe, according to Theorem~\ref{thm:strong duality}) largely depends on what learning algorithm is used. In particular, high values of the penalty may break some algorithms by making them numerically unstable, or very sample-inefficient. Since theoretical guarantees hold as long as $p > p^*$, the algorithm's sensitivity to the penalty should be the main consideration to choose $p$. According to the numerical proof of concept that we present below, Q-Learning does not seem to be very sensitive to the value of $p$: the number of iterations required to find the optimal policy on does not noticeably vary with $p$.
 
 \subsubsection{Application to the hovership example} \label{sec:hovership example}
-We describe here a numerical experiment showing how Theorem~\ref{thm:strong duality} and Corollary~\ref{clry:penalized solves constrained} can be used in practice. The environment is a variation of the hovership presented in Section~\ref{sec:hovership} with larger state and action spaces. The reward is an affine function of the state: it is $0$ when $s=2$, and $10$ when $s=0$, to make the agent go as low as possible. The discount rate was set to $\gamma = 0.3$. We chose such a low value for $\gamma$ to emphasize that the value of $p^*$ can grow very quickly depending on how the problem is parameterized.
 
-\paragraph{Solving the penalized problem} The algorithm used to solve the penalized problem is Q-Learning~\cite{watkins1992q}, with an $\varepsilon$-greedy policy with $\varepsilon = 0.1$ and a step size of $0.6$.
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=0.6\textwidth]{constrained_value/small_penalties_final_values.pdf}
+	\caption[Penalized optimal value function]{The optimal value function for different values of the penalty on the hovership example. The viability kernel is $\SV=\{6, 7, 8, 9, 10\}$. The constrained value function is plotted in green, and is equal to the penalized functions for the biggest penalties. The value at $s=0$ is not defined, since no step can be taken from there, and was arbitrarily set to $0$. The policy for $p=15$ is not safe, since $V_{15}(5) > V_{15}(6)$ and $s=5$ is not viable. The different values we tested for the penalty indicates that the lowest threshold $p^*$ is somewhere between $15$ and $200$.}
+	\label{fig:hovership values comparison}
+\end{figure}
+We describe here a numerical experiment showing how Theorem~\ref{thm:strong duality} and Corollary~\ref{clry:penalized solves constrained} can be used in practice. The environment is a variation of the hovership presented in Section~\ref{sec:hovership} with larger (finite) state and action spaces. The reward is an affine function of the altitude: it is $10$ when the altitude is minimal, and $10$ when it is maximal. This incentivizes the agent to go as low as possible. The discount rate was set to $\gamma = 0.3$. We chose such a low value for $\gamma$ to emphasize that the value of $p^*$ can grow very quickly depending on how the problem is parameterized.
 
-\paragraph{Solving the constrained problem} We also solved the constrained problem with an iterative method to illustrate how the constrained problem can be solved directly by only looking for policies that satisfy the constraint in Corollary~\ref{clry:safe policies on qc}. The algorithm we used for that is a modified version of Q-Learning with an $\varepsilon$-greedy exploration policy:
+\paragraph{Solving the penalized problem} The algorithm used to solve the penalized problem is Q-Learning~\cite{watkins1992q}, with an $\varepsilon$-greedy policy with an exploration parameter $\varepsilon = 0.1$ and a step size of $0.6$.
+
+\paragraph{Solving the constrained problem} We also solved the constrained problem with an iterative method to illustrate how the constrained problem can be solved directly by only looking for policies that satisfy the constraint in Corollary~\ref{clry:safe policies on qc}. The algorithm used is a modified version of Q-Learning with an $\varepsilon$-greedy exploration policy:
 \begin{itemize}
 	\item with probability $1-\varepsilon$: the agent picks the action that maximizes its current estimate of $Q^c$;
 	\item the agent picks any other\emph{ viable} action with uniform probability.
 \end{itemize}
 Note that this is exactly the Q-Learning algorithm where the set of actions is constrained to viable actions. We call this algorithm \enquote{constrained Q-Learning}. Of course, it requires the viable set to be known.
 
-\paragraph{Results} The results are presented in Figures~\ref{fig:hovership values comparison} and~\ref{fig:hovership q values}. The statements of Theorem~\ref{thm:strong duality} are best seen on Figure~\ref{fig:hovership values comparison}: the values of all states decrease as the penalty increases. When the penalty exceeds a certain threshold (between $15$ and $200$), the penalized values in the viability kernel stop decreasing and stabilize at\emph{ exactly} the constrained values. Outside of the kernel, the values go arbitrarily low. The resulting policies can be examined on Figure~\ref{fig:hovership q values}. When the penalty is too low, the resulting greedy policy is unsafe. As the penalty grows, taking unviable actions is deemed less and less interesting, and the policy becomes safe when the penalty is big enough. Then, the penalized agent only considers actions in \QV, and it finds the optimal policy of the constrained problem.
-\begin{figure}
-	\centering
-	\includegraphics[width=0.6\textwidth]{constrained_value/small_penalties_final_values.pdf}
-	\caption{The optimal value function for different values of the penalty on the hovership example. The viability kernel is $\SV=\{6, 7, 8, 9, 10\}$. The constrained value function is plotted in green, and is equal to the penalized functions for the biggest penalties. The value at $s=0$ is an artifact and is not meaningful. The policy for $p=15$ is not safe, since $V_{15}(5) > V_{15}(6)$ and $s=5$ is not viable. The lowest threshold $p^*$ is somewhere between $15$ and $200$.}
-	\label{fig:hovership values comparison}
-\end{figure}
-\begin{figure}
+\paragraph{Results} As we increase the penalty, the values of all states decrease (see Figure~\ref{fig:hovership values comparison}). When the penalty exceeds the lowest threshold $p^*$, the penalized values in the viability kernel stop decreasing and stabilize at\emph{ exactly} the constrained values. Outside of the kernel, the values go arbitrarily low. The resulting policies can be examined on Figure~\ref{fig:hovership q values}: for a given value map, the corresponding policy is the one that takes the action with maximal value in every state. For high values of the penalty, this policy stays in \QV.
+\begin{figure}[!htb]
 	\centering
 	\begin{subfigure}{0.45\textwidth}
 		\centering
@@ -250,47 +256,40 @@ Note that this is exactly the Q-Learning algorithm where the set of actions is c
 		\caption{$p=200$}
 		\label{fig:hovership q values:200}
 	\end{subfigure}
-	\caption{The optimal state-action value function for the constrained problem and different values of the penalty. The numbers are the value of the state-action. The color rectangles correspond to the state-action on their lower-left vertex. On Figure~\ref{fig:hovership q values:constrained}, the viable set is horizontally striped, the failing state-actions are crossed, and state-actions failing in more than one step are diagonally striped. The function is not defined outside of the viable set, hence the value $0$. On all figures, the $0$ values at $s=0$ are artifacts and should be ignored. The two small differences in the values in the viable set on Figures~\ref{fig:hovership q values:constrained} and~\ref{fig:hovership q values:200} are interpreted as the estimates not having quite converged yet.}
+	\caption[Penalized optimal Q-value function]{The optimal state-action value function for the constrained problem and different values of the penalty. The numbers are the value of the state-action. The coloured rectangles correspond to the state-action on their lower-left vertex. On Figure~\ref{fig:hovership q values:constrained}, the solid black line is the border of the viable set: state-actions above are viable, the ones below are not. On this figure, the value function is not defined outside of the viable set and was arbitrarily set to $0$ there. On all other figures, the value function is not defined at $s=0$ and was set to $0$. The estimate of~\ref{fig:hovership q values:200} has not converged yet: this explains the two small differences with Figure~\ref{fig:hovership q values:constrained} in the the values in the viable set.}
 	\label{fig:hovership q values}
 \end{figure}
 \section{The price of parameterization} \label{sec:parameterization}
-In many of the real-world applications of RL, the state-action space is enormous. Because of that, finding an optimal policy becomes an impossible task, since it would require not only lots of computational power and memory, but also unreasonable amounts of data. This last point is critical when applying RL to dynamical systems, where collecting data is risky and expensive. For these reasons, we restrict the policies to a set of\emph{ parameterized policies}, and only look for the parameters that maximize the expected return. Ensuring the safety of the learned parameterized policy is also critical, like it was in the unparameterized setting. An important question is then: do the guarantees on penalty scaling still hold when parameterizing the policies? Is it still reasonable to solve the easier penalized problem to learn safe policies? The short answer is no, and Section~\ref{sec:unsafe parameterized} gives a counterexample showing it. In Section~\ref{sec:value unreliable}, we emphasize on another example that the resulting\emph{ duality gap} between the penalized and the constrained problem is a very poor indicator of whether the policy learned by penalized methods is close to being safe.
+In many of the real-world applications of RL, the dimensionalty of the state-action space is intractable. Because of that, finding an optimal policy becomes an impossible task, since it would require not only lots of computational power and memory, but also unreasonable amounts of data. This last point is critical when applying RL to dynamical systems, where collecting data is risky and expensive. For these reasons, we restrict the policies to a set of\emph{ parameterized policies}, and only look for the parameters that maximize the expected return. This reduces the problem's dimensionality while reducing the set of possible solutions. An important question is then: do the guarantees on penalty scaling still hold when parameterizing the policies? Is it still reasonable to solve the easier penalized problem to learn safe policies? The short answer is no, and Section~\ref{sec:unsafe parameterized} gives a counterexample showing it. In Section~\ref{sec:value unreliable}, we emphasize on another example that the resulting\emph{ duality gap} between the penalized and the constrained problem is a very poor indicator of whether the policy learned by penalized methods is close to being safe.
 
 \begin{figure}
 	\centering
-	\begin{subfigure}{\textwidth}
 		\centering
 		\includegraphics[width=0.6\textwidth]{counterexample}
-		\caption{First example. Here, $\theta_\text{max} = \frac{\sqrt{5}-1}{2}$.}
+		\caption{ The agent is initialized in $s=0$. Once it reaches $s=1, 2$ or $3$, it cannot go back. The state $s=3$ is considered a failure. The policy is parameterized by the scalar $\theta\in[0, \theta_{\text{max}}]$, where $\theta_\text{max} = \frac{\sqrt{5}-1}{2}$.}
 		\label{fig:counterexample 1}
-	\end{subfigure}
-	\begin{subfigure}{\textwidth}
-		\centering
-		\includegraphics[width=0.6\textwidth]{counterexample_2}
-		\caption{Second counterexample, with hyperparameter $\alpha$.}
-		\label{fig:counterexample 2}
-	\end{subfigure}
-	\caption{Two counterexamples. The agent is initialized in $s=0$. Once it reaches $s=1, 2$ or $3$, it cannot go back. The state $s=3$ is considered a failure. The policy is parameterized by the scalar $\theta\in[0, \theta_{\text{max}}]$, where $\theta_\text{max}$ depends on the parameterization.}
-	\label{fig:counterexamples}
-\end{figure}
+	\end{figure}
 
-\subsection{Penalized parameterized policies are unsafe} \label{sec:unsafe parameterized}
-In this section, we develop a counterexample showing that there is in general no way of choosing a\emph{ finite} value of the penalty to get a safe, optimal policy by solving the penalized problem.
+\subsection{Penalized parameterized policies are not safe} \label{sec:unsafe parameterized}
+In this section, we show that penalized optimal policies are in general not safe for any\emph{ finite} value of the penalty.
 
 \subsubsection{Problem setting} The MDP we consider is described in Figure~\ref{fig:counterexample 1}. The policies are parameterized by a scalar parameter $\theta\in[0,\theta_{\text{max}}]$, with $\theta_\text{max} = \frac{\sqrt{5}-1}{2}$:
 $$
-	\pi_\theta(a|s) = \begin{cases}
-		\theta,\quad\text{if}~a=a_1,\\
-		1 - \theta - \theta^2,\quad\text{if}~a=a_2,\\
-		\theta^2,\quad\text{if}~a=a_3.\\
-	\end{cases}
+	\pi_\theta(a|s) = \begin{dcases}
+		\theta,&\text{if}~a=a_1,\\
+		1 - \theta - \theta^2,&\text{if}~a=a_2,\\
+		\theta^2,&\text{if}~a=a_3.\\
+	\end{dcases}
 $$
-If $s\neq0$, all the actions have the same effect and keep the agent in its current state. The constrained and the penalized problems can respectively be rewritten as follows:
-\begin{align*}
-	\underset{0\leq\theta\leq\theta_\text{max}}{\text{maximize}}&~(1-\gamma)\cdot\theta,\\
-	\text{s.t.} &~\theta^2 = 0,\\
-	\underset{0\leq\theta\leq\theta_\text{max}}{\text{maximize}}&~(1-\gamma)\cdot\theta\cdot\left[1 - p\cdot\theta\right],
-\end{align*}
+If $s\neq0$, all the actions have the same effect and keep the agent in its current state. The constrained problem can be rewritten as follows:
+\begin{equation*}
+	\underset{0\leq\theta\leq\theta_\text{max}}{\text{maximize}}~(1-\gamma)\cdot\theta,\\
+	\text{s.t.} ~\theta^2 = 0,
+\end{equation*}
+and the penalized one is:
+\begin{equation*}
+	\underset{0\leq\theta\leq\theta_\text{max}}{\text{maximize}}~(1-\gamma)\cdot\theta\cdot\left[1 - p\cdot\theta\right],
+\end{equation*}
 The question we answer now is: does there exist a scaling of the penalty $p$ for which the solution of the penalized problem is safe and has the same value as the constrained problem?
 
 \subsubsection{Solution} The constrained problem obviously has only one feasible parameter: $\theta~=~0$. The return achieved by the corresponding policy is simply $G^c = 0$. For a given penalty $p$, the optimal parameter for the penalized problem is $\theta_p = \frac{1}{2p}$. This policy achieves a return of $G_p = \frac{1-\gamma}{4p}$. The duality gap is then:
@@ -300,12 +299,20 @@ $$
 We can clearly see that there exists no finite value of the penalty that makes $\Delta = 0$: the penalty cannot be scaled. What's more, for any value of the penalty, the optimal policy for the penalized problem has a probability of failing equal to $\frac{1}{2p}>0$: the policy is not safe.
 
 \subsubsection{Discussion} 
-\paragraph{The penalized problem gives unsafe policies} This counterexample demonstrates that the theoretical guarantees of Theorem~\ref{thm:strong duality} are lost when parameterizing the policy. In general, the penalized and the constrained problems have different expected returns, and the optimal policy of the penalized problem is not safe. However, weak duality (Lemma~\ref{lemma:weak duality}) still holds: this is shown in~\cite{paternain2019safe}. Note however that, in the example, the guarantees still hold asymptotically when $p\to\infty$. We suspect that this is always true, but do not make any claims about this.
+\paragraph{The penalized problem gives unsafe policies} This counterexample demonstrates that the theoretical guarantees of Theorem~\ref{thm:strong duality} are lost when parameterizing the policy. In general, the penalized and the constrained problems have different expected returns, and the optimal policy of the penalized problem is not safe. However, weak duality (Lemma~\ref{lemma:weak duality}) still holds: this is shown in~\cite{paternain2019safe}. Note however that, in the example, the guarantees still hold asymptotically when $p\to\infty$. We suspect that this is always true, but have not proved it.
 
-\paragraph{Comparison with the unparamaterized problem} We have compared here the return of the\emph{ unparameterized} problems. In~\cite{paternain2019safe}, the authors compare the return of the parameterized penalized problem with the one the unparameterized constrained problem, and they bound this suboptimality gap with the approximation error of the parameterization. Our result is of different interest: it answers the question of how the problem of finding safe policies should be solved once the parameterization is chosen.
+\paragraph{Comparison with the unparamaterized problem} We have compared here the return of the\emph{ unparameterized} problems. In~\cite{paternain2019safe}, the authors compare the return of the parameterized penalized problem with the one the unparameterized constrained problem. They bound this suboptimality with the approximation error of the policy class they consider. This result is important, but it does not answer whether penalizing failures give safe, optimal policies. Our example shows that, without any further assumptions on the policy class, this is not true and that penalizing policies do not have any safety guarantees, contrary to the unparameterized case.
 
 \subsection{The duality gap is a poor indicator of the risk} \label{sec:value unreliable}
 One of the main results of~\cite{paternain2019safe} is showing that the difference between the optimal expected returns of the penalized and the constrained problems is bounded by the approximation error of the policy. The underlying motivation is guaranteeing when parameterizing policies can be done without sacrificing too much performance. We argue here on a counterexample that guaranteeing a small gap in the return does\emph{ not} give any guarantees on the underlying safety of the policy. Our example shows that, for a given duality gap, the hyperparameters of the parameterization and the penalty can be chosen such that the resulting policy can have an arbitrarily high risk of failure. This is of particular importance since tuning the penalty and the rest of the hyperparameters is often done at the same time, and can result in risky policies without this being visible on the return signal.
+
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\textwidth]{counterexample_2}
+	\caption{ The agent is initialized in $s=0$. Once it reaches $s=1, 2$ or $3$, it cannot go back. The state $s=3$ is considered a failure. The policy is parameterized by the scalar $\theta\in[0, \theta_{\text{max}}]$, where $\thetamax$ depends on the hyperparameter $\alpha$.}
+	\label{fig:counterexample 2}
+\end{figure}
 
 \subsubsection{Problem setting}
 The MDP we consider here is described in Figure~\ref{fig:counterexample 2}. The dynamics are the same as in the previous section, but the class of policies is now parameterized by the hyperparameter $\alpha > 1$:
@@ -322,7 +329,7 @@ Since $\alpha$ is a hyperparameter, the RL agent does not optimize on it: its on
 \text{s.t.} &~\theta^\alpha = 0,\\
 \underset{0\leq\theta\leq\theta_\text{max}}{\text{maximize}}&~\theta - p\cdot\theta^\alpha.
 \end{align*}
-The expected return of the constrained problem is noted $G^c$, and the one of the penalized problem is $G_p^\alpha$ (the superscript is a notation, and does not represent \enquote{$G_p$ to the power $\alpha$}). The resulting duality gap is noted $\Delta_p^\alpha = G_p^\alpha - G^c$.
+The expected return of the constrained problem is $G^c$, and the one of the penalized problem is $G_p^\alpha$ (the superscript is a notation, and does not represent \enquote{$G_p$ to the power $\alpha$}). The resulting duality gap is $\Delta_p^\alpha = G_p^\alpha - G^c$.
 
 \paragraph{Definition of \thetamax} The parameter \thetamax~is the only positive solution to the equation:
 \begin{equation}
@@ -331,7 +338,7 @@ The expected return of the constrained problem is noted $G^c$, and the one of th
 This equation comes from the fact that the probability of every transition must be nonnegative.
 
 \subsubsection{Optimal values and parameters}
-This problem is simple enough to be solved with pen and paper, and we give the solutions here. The only value of the parameter satisfying the safety constraint is $\theta = 0$, and so the expected return of the constrained problem is once again $G^c = 0$.\par
+The only value of the parameter satisfying the safety constraint is $\theta = 0$, and so the expected return of the constrained problem is once again $G^c = 0$.\par
 For a given penalty $p$ and hyperparameter $\alpha$, the penalized expected return is maximal in :
 \begin{equation}
 	\thetapalpha = \frac{1}{(\alpha p)^\frac{1}{\alpha - 1}}.\label{eq:theta p alpha}
