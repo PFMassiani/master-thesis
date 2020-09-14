@@ -58,7 +58,7 @@
 			\end{equation*}
 			So far, we do not put any assumption on $\mu$. Such assumptions will become in Chapter~\ref{chap:safety from viability} in order to ensure the existence of safe policies.
 		\subsubsection{Policies and optimization objective} 
-			At each time step $t$, the agent needs to choose an action. The decision rule that the agent follows is called a\emph{ policy}: when in state $s$, the agent will take the action $a$ with probability $\pi(a|s)\in[0,1])$. For a given state, a policy determines a probability distribution over the set of actions, and so the following identity holds:
+			At each time step $t$, the agent needs to choose an action. The decision rule that the agent follows is called a\emph{ policy}: when in state $s$, the agent will take the action $a$ with probability $\pi(a|s)\in[0,1]$. For a given state, a policy determines a probability distribution over the set of actions, and so the following identity holds:
 			\begin{equation*}
 			\sum_{a\in\A}\pi(a|s) = 1.
 			\end{equation*} 
@@ -108,7 +108,7 @@
 		\subsection{Constrained Markov decision processes} \label{sec:cmdps preliminaries}
 		While Markov decision processes are commonly used for RL tasks, they are not always the best-suited model. We have seen in the introduction that CMDPs are particularly adapted to describe RL tasks with safety concerns. We provide here a brief introduction to CMDPs. This section is mainly based on \cite[Chapter\,3]{altman1999constrained}. We will not be as complete in our presentation of CMDPs as we have been for MDPs, and we refer the reader to~\cite{altman1999constrained} for a more detailed presentation.
 		\subsubsection{A constrained optimization problem}
-		The mathematical formalism of CMDPs is almost identical to the one of MDPs. In this work, we only consider MDPs constrained by a single scalar cost. A CMDP is therefore defined by its state space \S, action space \A, dynamics $f$ (also specifying the reward), initial state distribution $\mu$, and cost function $c: \Q\to\R$. Similarly to the reward, the cost is a scalar signal that the agent samples at every step. The agent aggregates this cost with the cost discount factor $\gammabar$. Note that the cost function is different from the reward function: the latter defines the maximization objective, whereas the former will define the constraint.
+		The mathematical formalism of CMDPs is almost identical to the one of MDPs. In this work, we only consider MDPs constrained by a single scalar cost. A CMDP is therefore defined by its state space \S, action space \A, dynamics $f$, reward $R$, initial state distribution $\mu$, and cost function $c: \Q\to\R$. Similarly to the reward, the cost is a scalar signal that the agent samples at every step. The agent aggregates this cost with the cost discount factor $\gammabar$. Note that the cost function is different from the reward function: the latter defines the maximization objective, whereas the former defines the constraint.\par
 		We say that an agent is solving the CMDP when it is solving the following optimization problem:
 		\begin{equation}
 		\begin{aligned}
